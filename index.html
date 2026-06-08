@@ -5,20 +5,243 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <meta name="theme-color" content="#0a0f1e">
 <title>台股分析 v7</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@400;700;900&family=Bangers&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
+/* ===== DEFAULT THEME (Dark) ===== */
 :root{
   --bg:#0a0f1e;--bg2:#111827;--bg3:#1a2235;
   --border:#1e2d47;--border2:#2a3f5f;
   --text:#e2e8f0;--text2:#94a3b8;--text3:#4a5f7a;
   --accent:#38bdf8;--up:#22c55e;--down:#f43f5e;--gold:#f59e0b;--purple:#a78bfa;
   --r:6px;
+  --card-border-w:1px;--card-border-style:solid;--card-shadow:none;
+  --body-bg-img:none;--body-font:'Noto Sans TC',sans-serif;--mono-font:'JetBrains Mono',monospace;
+  --header-blur:none;--card-blur:none;--glow:none;
 }
+
+/* ===== OCEAN THEME ===== */
+[data-theme="ocean"]{
+  --bg:#071428;
+  --bg2:rgba(8,28,64,0.55);
+  --bg3:rgba(5,18,45,0.6);
+  --border:rgba(56,189,248,0.35);
+  --border2:rgba(56,189,248,0.55);
+  --text:#E0F2FE;--text2:#7DD3FC;--text3:#38BDF8;
+  --accent:#0EA5E9;--up:#2DD4BF;--down:#f43f5e;--gold:#FCD34D;--purple:#818CF8;
+  --card-border-w:1px;--card-border-style:solid;
+  --card-shadow:0 8px 32px rgba(0,15,30,0.5);
+  --header-blur:blur(14px);--card-blur:blur(12px);
+  --body-bg-img:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%230B1D3A'/%3E%3Cstop offset='1' stop-color='%23051228'/%3E%3C/linearGradient%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3C/svg%3E");
+}
+[data-theme="ocean"] body::before{
+  content:'';position:fixed;inset:0;z-index:-1;
+  background:radial-gradient(ellipse 120% 60% at 50% 100%,rgba(14,165,233,.18) 0%,transparent 70%),
+             radial-gradient(ellipse 80% 40% at 20% 80%,rgba(45,212,191,.12) 0%,transparent 60%),
+             linear-gradient(180deg,#071428 0%,#051228 100%);
+}
+[data-theme="ocean"] .panel,[data-theme="ocean"] .price-card,[data-theme="ocean"] .metric-card{
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+
+/* ===== DESERT THEME ===== */
+[data-theme="desert"]{
+  --bg:#F4E8D1;--bg2:rgba(255,255,255,0.85);--bg3:#FDF6EC;
+  --border:#D4B896;--border2:#C4A882;
+  --text:#4A3B2C;--text2:#8C7355;--text3:#A8956C;
+  --accent:#D97736;--up:#5D8A3C;--down:#C0392B;--gold:#E1A730;--purple:#8B5E8B;
+  --card-border-w:1px;--card-border-style:solid;
+  --card-shadow:4px 6px 20px rgba(139,115,85,0.15);
+  --header-blur:none;--card-blur:none;
+}
+[data-theme="desert"] body::before{
+  content:'';position:fixed;inset:0;z-index:-1;
+  background:
+    radial-gradient(ellipse 140% 50% at 50% 110%,rgba(217,119,54,.25) 0%,transparent 65%),
+    radial-gradient(ellipse 80% 40% at 80% 90%,rgba(225,167,48,.15) 0%,transparent 60%),
+    linear-gradient(170deg,#F4E8D1 0%,#EDD9B8 50%,#E8CFA0 100%);
+}
+
+/* ===== INTERSTELLAR THEME ===== */
+[data-theme="interstellar"]{
+  --bg:#030014;--bg2:rgba(20,15,45,0.75);--bg3:rgba(12,8,30,0.7);
+  --border:rgba(139,92,246,0.45);--border2:rgba(139,92,246,0.7);
+  --text:#F8F9FA;--text2:#A5A5C0;--text3:#7C7CA0;
+  --accent:#8B5CF6;--up:#06B6D4;--down:#F43F5E;--gold:#F59E0B;--purple:#A855F7;
+  --card-border-w:1px;--card-border-style:solid;
+  --card-shadow:0 0 24px rgba(139,92,246,0.2),0 8px 32px rgba(0,0,20,0.5);
+  --header-blur:blur(8px);--card-blur:blur(8px);
+  --glow:0 0 12px rgba(139,92,246,0.5);
+}
+[data-theme="interstellar"] body::before{
+  content:'';position:fixed;inset:0;z-index:-1;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 20%,rgba(139,92,246,.12) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 70%,rgba(6,182,212,.1) 0%,transparent 55%),
+    radial-gradient(ellipse 80% 60% at 50% 90%,rgba(168,85,247,.08) 0%,transparent 65%),
+    linear-gradient(135deg,#030014 0%,#0a0525 50%,#030014 100%);
+}
+[data-theme="interstellar"] body::after{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:radial-gradient(1px 1px at 10% 20%,rgba(255,255,255,.7) 0%,transparent 100%),
+    radial-gradient(1px 1px at 30% 60%,rgba(255,255,255,.5) 0%,transparent 100%),
+    radial-gradient(1px 1px at 50% 40%,rgba(255,255,255,.6) 0%,transparent 100%),
+    radial-gradient(1px 1px at 70% 80%,rgba(255,255,255,.4) 0%,transparent 100%),
+    radial-gradient(1px 1px at 90% 30%,rgba(255,255,255,.6) 0%,transparent 100%),
+    radial-gradient(1px 1px at 15% 85%,rgba(255,255,255,.5) 0%,transparent 100%),
+    radial-gradient(2px 2px at 60% 10%,rgba(255,255,255,.3) 0%,transparent 100%),
+    radial-gradient(1px 1px at 85% 55%,rgba(255,255,255,.5) 0%,transparent 100%);
+}
+[data-theme="interstellar"] .panel,[data-theme="interstellar"] .price-card,[data-theme="interstellar"] .metric-card{
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+[data-theme="interstellar"] .accent-glow{ text-shadow:0 0 12px rgba(139,92,246,.8); }
+
+/* ===== CYBERPUNK THEME ===== */
+[data-theme="cyberpunk"]{
+  --bg:#0B0B0C;--bg2:#111114;--bg3:#18181C;
+  --border:#00F0FF;--border2:#FF003C;
+  --text:#EAEAEA;--text2:#FCE205;--text3:#888;
+  --accent:#FF003C;--up:#00F0FF;--down:#FF003C;--gold:#FCE205;--purple:#FF00E6;
+  --card-border-w:1px;--card-border-style:solid;
+  --card-shadow:0 0 10px rgba(0,240,255,.25),4px 4px 0px #FF003C;
+  --header-blur:none;--card-blur:none;
+  --body-font:'Orbitron',monospace;
+}
+[data-theme="cyberpunk"] body::before{
+  content:'';position:fixed;inset:0;z-index:-1;
+  background:
+    linear-gradient(180deg,#0B0B0C 0%,#0d0d14 60%,#0B0B0C 100%);
+}
+[data-theme="cyberpunk"] body::after{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,240,255,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,240,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+[data-theme="cyberpunk"] header{
+  border-bottom:2px solid #00F0FF;
+  box-shadow:0 2px 20px rgba(0,240,255,.3),inset 0 -1px 0 rgba(0,240,255,.2);
+}
+[data-theme="cyberpunk"] .logo{
+  text-shadow:0 0 10px #00F0FF,0 0 30px rgba(0,240,255,.4);
+  letter-spacing:3px;
+}
+[data-theme="cyberpunk"] .price-value.down{
+  text-shadow:0 0 12px rgba(255,0,60,.6);
+}
+[data-theme="cyberpunk"] .price-value.up{
+  text-shadow:0 0 12px rgba(0,240,255,.6);
+}
+[data-theme="cyberpunk"] .panel{
+  border-color:#00F0FF;
+  box-shadow:0 0 10px rgba(0,240,255,.2),4px 4px 0 #FF003C;
+}
+[data-theme="cyberpunk"] .metric-card{
+  border-color:#FF003C;
+  box-shadow:0 0 8px rgba(255,0,60,.2),3px 3px 0 #00F0FF;
+}
+
+/* ===== FOREST THEME ===== */
+[data-theme="forest"]{
+  --bg:#1C2B23;--bg2:rgba(28,46,36,0.8);--bg3:#1A2E24;
+  --border:rgba(76,175,80,.35);--border2:rgba(76,175,80,.55);
+  --text:#E8F5E9;--text2:#A5D6A7;--text3:#66BB6A;
+  --accent:#4CAF50;--up:#81C784;--down:#EF5350;--gold:#FFC107;--purple:#CE93D8;
+  --card-border-w:1px;--card-border-style:solid;
+  --card-shadow:0 10px 30px rgba(10,20,15,.6);
+  --header-blur:blur(8px);--card-blur:blur(6px);
+}
+[data-theme="forest"] body::before{
+  content:'';position:fixed;inset:0;z-index:-1;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 100%,rgba(76,175,80,.15) 0%,transparent 65%),
+    radial-gradient(ellipse 60% 50% at 10% 50%,rgba(56,142,60,.12) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 30%,rgba(129,199,132,.08) 0%,transparent 55%),
+    linear-gradient(160deg,#1C2B23 0%,#152019 50%,#1C2B23 100%);
+}
+[data-theme="forest"] .panel,[data-theme="forest"] .price-card,[data-theme="forest"] .metric-card{
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+
+/* ===== COMIC THEME ===== */
+[data-theme="comic"]{
+  --bg:#FFFFFF;--bg2:#FFFFFF;--bg3:#F8F8F8;
+  --border:#111827;--border2:#111827;
+  --text:#111827;--text2:#374151;--text3:#6B7280;
+  --accent:#EF4444;--up:#16A34A;--down:#EF4444;--gold:#F59E0B;--purple:#7C3AED;
+  --card-border-w:3px;--card-border-style:solid;
+  --card-shadow:5px 5px 0px #111827;
+  --header-blur:none;--card-blur:none;
+  --body-font:'Bangers',cursive;
+}
+[data-theme="comic"] body::before{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:radial-gradient(circle,#d1d5db 1px,transparent 1px);
+  background-size:18px 18px;
+  opacity:.55;
+}
+[data-theme="comic"] header{
+  border-bottom:3px solid #111827;
+  box-shadow:0 3px 0 #111827;
+}
+[data-theme="comic"] .tab-nav{
+  border-bottom:3px solid #111827;
+}
+[data-theme="comic"] .price-value{
+  font-family:'Bangers',cursive;letter-spacing:2px;font-size:44px;
+}
+[data-theme="comic"] .price-ticker{
+  font-family:'Bangers',cursive;letter-spacing:3px;font-size:28px;
+}
+[data-theme="comic"] .panel-title::before{
+  display:none;
+}
+[data-theme="comic"] .panel-title{
+  font-family:'Bangers',cursive;letter-spacing:2px;font-size:16px;
+  border-bottom:2px solid #111827;padding-bottom:4px;
+}
+[data-theme="comic"] .metric-value{
+  font-family:'Bangers',cursive;letter-spacing:1px;
+}
+[data-theme="comic"] .btn-primary{
+  border:2px solid #111827;box-shadow:3px 3px 0 #111827;
+  background:#EF4444;color:#fff;
+}
+[data-theme="comic"] .btn-primary:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #111827;}
+[data-theme="comic"] .btn-outline{
+  border:2px solid #111827;box-shadow:2px 2px 0 #111827;
+}
+[data-theme="comic"] .search-row input{
+  border:2px solid #111827;box-shadow:2px 2px 0 #111827;
+  color:#111827;background:#fff;
+}
+
+/* ===== THEME PICKER BUTTON ===== */
+.theme-picker-btn{
+  padding:7px 12px;background:transparent;border:1px solid var(--border2);
+  border-radius:var(--r);color:var(--text2);font-size:13px;cursor:pointer;
+  transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px;
+}
+.theme-picker-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* ===== THEME MODAL ===== */
+.theme-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;align-items:center;justify-content:center;}
+.theme-modal-overlay.open{display:flex;}
+.theme-modal{background:var(--bg2);border:var(--card-border-w) var(--card-border-style) var(--border);border-radius:12px;padding:24px;width:min(500px,92vw);box-shadow:var(--card-shadow);}
+.theme-modal h3{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text);}
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.theme-card{border-radius:10px;padding:10px 8px;cursor:pointer;border:2px solid transparent;transition:all .2s;text-align:center;position:relative;overflow:hidden;}
+.theme-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.25);}
+.theme-card.active::after{content:'✓';position:absolute;top:4px;right:6px;font-size:12px;font-weight:700;color:var(--accent);}
+.theme-preview{width:100%;height:48px;border-radius:6px;margin-bottom:7px;display:flex;gap:3px;padding:7px;overflow:hidden;align-items:stretch;}
+.theme-preview-bar{border-radius:3px;flex:1;}
+.theme-label{font-size:11px;font-weight:600;letter-spacing:.5px;}
+.theme-close-btn{margin-top:16px;width:100%;padding:9px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--r);font-weight:700;cursor:pointer;font-size:13px;border:var(--card-border-w) var(--card-border-style) var(--border);}
 *{margin:0;padding:0;box-sizing:border-box;}
 html{font-size:14px;}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;}
+body{background:var(--bg);color:var(--text);font-family:var(--body-font);transition:background .3s,color .3s;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
+header{background:var(--bg2);border-bottom:var(--card-border-w) var(--card-border-style) var(--border);backdrop-filter:var(--header-blur);padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;}
 .logo{font-weight:700;font-size:16px;color:var(--accent);letter-spacing:1px;}
 .logo small{font-size:10px;color:var(--text3);font-weight:400;margin-left:4px;}
 .header-right{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end;}
@@ -38,7 +261,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .status.err{background:rgba(244,63,94,.08);border-color:rgba(244,63,94,.3);color:var(--down);}
 .status .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:blink 1.4s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.price-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;}
+.price-card{background:var(--bg2);border:var(--card-border-w) var(--card-border-style) var(--border);box-shadow:var(--card-shadow);border-radius:8px;padding:20px;}
 .price-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;}
 .price-ticker{font-size:22px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;}
 .price-name{font-size:13px;color:var(--text2);margin-top:2px;}
@@ -54,11 +277,11 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .stat-label{font-size:11px;color:var(--text3);margin-bottom:3px;}
 .stat-value{font-size:14px;font-family:'JetBrains Mono',monospace;}
 .metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-.metric-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
+.metric-card{background:var(--bg2);border:var(--card-border-w) var(--card-border-style) var(--border);box-shadow:var(--card-shadow);border-radius:8px;padding:14px 16px;}
 .metric-label{font-size:11px;color:var(--text3);margin-bottom:6px;}
 .metric-value{font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;}
 .metric-sub{font-size:11px;color:var(--text3);margin-top:4px;}
-.panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.panel{background:var(--bg2);border:var(--card-border-w) var(--card-border-style) var(--border);box-shadow:var(--card-shadow);border-radius:8px;overflow:hidden;}
 .panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
 .panel-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;}
 .panel-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--accent);display:block;}
@@ -172,6 +395,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
         enterkeyhint="search" maxlength="6">
       <button class="btn-primary" id="searchBtn">搜尋</button>
     </div>
+    <button class="theme-picker-btn" id="themeBtn">🎨 主題</button>
     <button class="btn-outline" id="wlOpenBtn">☆ 自選股</button>
   </div>
 </header>
@@ -488,6 +712,14 @@ function findVal(obj, keywords) {
 // =====================================================
 Chart.defaults.color = '#94a3b8';
 Chart.defaults.borderColor = '#1e2d47';
+// Theme-aware chart color update
+function updateChartDefaults() {
+  var style = getComputedStyle(document.documentElement);
+  var text2 = style.getPropertyValue('--text2').trim() || '#94a3b8';
+  var border = style.getPropertyValue('--border').trim() || '#1e2d47';
+  Chart.defaults.color = text2;
+  Chart.defaults.borderColor = border;
+}
 Chart.defaults.font.family = "'JetBrains Mono',monospace";
 Chart.defaults.font.size = 11;
 var CD = {
@@ -1196,6 +1428,59 @@ function etfCmpRefreshTags() {
   });
 }
 
+
+// =====================================================
+// THEME SYSTEM
+// =====================================================
+var THEMES = {
+  'dark':         { label:'預設深色',  icon:'🌑', meta:'#0a0f1e' },
+  'ocean':        { label:'海洋',      icon:'🌊', meta:'#0B1D3A' },
+  'desert':       { label:'沙漠',      icon:'🏜️', meta:'#F4E8D1' },
+  'interstellar': { label:'星際',      icon:'🌌', meta:'#030014' },
+  'cyberpunk':    { label:'賽博龐克',  icon:'⚡', meta:'#0B0B0C' },
+  'forest':       { label:'森林',      icon:'🌲', meta:'#1C2B23' },
+  'comic':        { label:'漫畫',      icon:'💥', meta:'#FFFFFF' }
+};
+
+function applyTheme(name) {
+  if (!THEMES[name]) name = 'dark';
+  // Set data-theme attribute (blank = default dark)
+  if (name === 'dark') {
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', name);
+  }
+  // Update meta theme-color
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', THEMES[name].meta);
+  // Update active card in modal
+  document.querySelectorAll('.theme-card').forEach(function(card) {
+    card.classList.toggle('active', card.dataset.theme === name);
+  });
+  // Save preference
+  localStorage.setItem('tw_theme', name);
+  updateChartDefaults();
+  // Redraw charts if any exist (theme change affects Chart.js colors)
+  setTimeout(function() {
+    if (currentTicker) {
+      var chartIds = ['chartRev','chartMargin','chartFCF','chartCapex','chartDebt','chartDebtRatio','chartDiv','chartEPS'];
+      chartIds.forEach(function(id) {
+        if (charts[id]) {
+          charts[id].options.plugins.tooltip.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim() || '#1a2235';
+          charts[id].update();
+        }
+      });
+    }
+  }, 100);
+}
+
+function openThemeModal() {
+  document.getElementById('themeModal').classList.add('open');
+}
+function closeThemeModal() {
+  document.getElementById('themeModal').classList.remove('open');
+}
+
 function init() {
   var inp = document.getElementById('searchInput');
   var searchBtn = document.getElementById('searchBtn');
@@ -1278,6 +1563,26 @@ function init() {
     });
   }
 
+  // ── Theme system ──────────────────────────────────────
+  var savedTheme = localStorage.getItem('tw_theme') || 'dark';
+  applyTheme(savedTheme);
+
+  var themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) themeBtn.addEventListener('click', openThemeModal);
+
+  var themeCloseBtn = document.getElementById('themeCloseBtn');
+  if (themeCloseBtn) themeCloseBtn.addEventListener('click', closeThemeModal);
+
+  document.getElementById('themeModal').addEventListener('click', function(e) {
+    if (e.target === this) closeThemeModal();
+  });
+
+  document.querySelectorAll('.theme-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      applyTheme(card.dataset.theme);
+    });
+  });
+
   renderWLDrawer();
 }
 
@@ -1287,5 +1592,81 @@ if (document.readyState === 'loading') {
   init();
 }
 </script>
+
+<!-- THEME MODAL -->
+<div class="theme-modal-overlay" id="themeModal">
+  <div class="theme-modal">
+    <h3>🎨 選擇介面主題</h3>
+    <div class="theme-grid">
+      <!-- Dark -->
+      <div class="theme-card active" data-theme="dark" style="background:#111827;">
+        <div class="theme-preview" style="background:linear-gradient(135deg,#0a0f1e,#1a2235);">
+          <div class="theme-preview-bar" style="background:#38bdf8;"></div>
+          <div class="theme-preview-bar" style="background:#22c55e;"></div>
+          <div class="theme-preview-bar" style="background:#f59e0b;"></div>
+        </div>
+        <div class="theme-label" style="color:#e2e8f0;">🌑 深色</div>
+      </div>
+      <!-- Ocean -->
+      <div class="theme-card" data-theme="ocean" style="background:#0B1D3A;">
+        <div class="theme-preview" style="background:linear-gradient(160deg,#071428,#0B1D3A);">
+          <div class="theme-preview-bar" style="background:#38BDF8;"></div>
+          <div class="theme-preview-bar" style="background:#2DD4BF;"></div>
+          <div class="theme-preview-bar" style="background:rgba(56,189,248,.3);"></div>
+        </div>
+        <div class="theme-label" style="color:#7DD3FC;">🌊 海洋</div>
+      </div>
+      <!-- Desert -->
+      <div class="theme-card" data-theme="desert" style="background:#F4E8D1;border-color:#D4B896;">
+        <div class="theme-preview" style="background:linear-gradient(160deg,#F4E8D1,#EDD9B8);">
+          <div class="theme-preview-bar" style="background:#D97736;"></div>
+          <div class="theme-preview-bar" style="background:#E1A730;"></div>
+          <div class="theme-preview-bar" style="background:#8C7355;opacity:.5;"></div>
+        </div>
+        <div class="theme-label" style="color:#4A3B2C;">🏜️ 沙漠</div>
+      </div>
+      <!-- Interstellar -->
+      <div class="theme-card" data-theme="interstellar" style="background:#030014;">
+        <div class="theme-preview" style="background:linear-gradient(135deg,#030014,#0a0525);position:relative;overflow:hidden;">
+          <div style="position:absolute;inset:0;background-image:radial-gradient(1px 1px at 25% 30%,white 0%,transparent 100%),radial-gradient(1px 1px at 60% 70%,white 0%,transparent 100%),radial-gradient(1px 1px at 80% 20%,white 0%,transparent 100%);opacity:.6;"></div>
+          <div class="theme-preview-bar" style="background:#8B5CF6;"></div>
+          <div class="theme-preview-bar" style="background:#06B6D4;"></div>
+          <div class="theme-preview-bar" style="background:#A855F7;opacity:.7;"></div>
+        </div>
+        <div class="theme-label" style="color:#A5A5C0;">🌌 星際</div>
+      </div>
+      <!-- Cyberpunk -->
+      <div class="theme-card" data-theme="cyberpunk" style="background:#0B0B0C;border-color:#00F0FF;box-shadow:0 0 8px rgba(0,240,255,.4),2px 2px 0 #FF003C;">
+        <div class="theme-preview" style="background:#0B0B0C;position:relative;overflow:hidden;">
+          <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(0,240,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,.06) 1px,transparent 1px);background-size:8px 8px;"></div>
+          <div class="theme-preview-bar" style="background:#00F0FF;box-shadow:0 0 6px #00F0FF;"></div>
+          <div class="theme-preview-bar" style="background:#FF003C;box-shadow:0 0 6px #FF003C;"></div>
+          <div class="theme-preview-bar" style="background:#FCE205;box-shadow:0 0 4px #FCE205;"></div>
+        </div>
+        <div class="theme-label" style="color:#00F0FF;font-family:Orbitron,monospace;font-size:9px;text-shadow:0 0 6px #00F0FF;letter-spacing:1px;">⚡ CYBERPUNK</div>
+      </div>
+      <!-- Forest -->
+      <div class="theme-card" data-theme="forest" style="background:#1C2B23;">
+        <div class="theme-preview" style="background:linear-gradient(160deg,#1C2B23,#152019);">
+          <div class="theme-preview-bar" style="background:#4CAF50;"></div>
+          <div class="theme-preview-bar" style="background:#81C784;"></div>
+          <div class="theme-preview-bar" style="background:#FFC107;"></div>
+        </div>
+        <div class="theme-label" style="color:#A5D6A7;">🌲 森林</div>
+      </div>
+      <!-- Comic -->
+      <div class="theme-card" data-theme="comic" style="grid-column:span 3;background:#fff;border:3px solid #111827;box-shadow:4px 4px 0 #111827;max-width:180px;margin:4px auto 0;">
+        <div class="theme-preview" style="background:#FFFFFF;border:2px solid #111827;position:relative;overflow:hidden;">
+          <div style="position:absolute;inset:0;background-image:radial-gradient(circle,#d1d5db 1px,transparent 1px);background-size:6px 6px;opacity:.4;"></div>
+          <div class="theme-preview-bar" style="background:#111827;"></div>
+          <div class="theme-preview-bar" style="background:#EF4444;"></div>
+          <div class="theme-preview-bar" style="background:#F59E0B;"></div>
+        </div>
+        <div class="theme-label" style="color:#111827;font-family:Bangers,cursive;font-size:14px;letter-spacing:2px;">💥 漫畫 COMIC</div>
+      </div>
+    </div>
+    <button class="theme-close-btn" id="themeCloseBtn">確認</button>
+  </div>
+</div>
 </body>
 </html>
