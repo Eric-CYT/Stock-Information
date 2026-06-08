@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <meta name="theme-color" content="#0a0f1e">
-<title>台股分析 v6</title>
+<title>台股分析 v7</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -123,6 +123,19 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .wl-remove{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;}
 .wl-remove:hover{color:var(--down);}
 .wl-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px;line-height:1.7;}
+.tab-btn{padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn:hover:not(.active){color:var(--text2);}
+.tab-page{display:none;} .tab-page.active{display:flex;flex-direction:column;gap:16px;}
+.compare-input-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 0;}
+.compare-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;font-size:12px;font-family:'JetBrains Mono',monospace;}
+.compare-tag .rm{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;}
+.compare-tag .rm:hover{color:var(--down);}
+.etf-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.etf-holding-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(30,45,71,.4);}
+.etf-holding-row:last-child{border-bottom:none;}
+.etf-bar-wrap{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.etf-bar{height:100%;border-radius:3px;background:var(--accent);}
 @media(max-width:640px){
   .price-value{font-size:28px;} .price-stats{grid-template-columns:repeat(2,1fr);}
   .metrics-row{grid-template-columns:repeat(3,1fr);} .metric-value{font-size:16px;}
@@ -143,7 +156,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 </div>
 
 <header>
-  <div class="logo">台股分析 <small>v6</small></div>
+  <div class="logo">台股分析 <small>v7</small></div>
   <div class="header-right">
     <div class="search-row">
       <input type="search" id="searchInput" placeholder="輸入代號，如 2382"
@@ -154,8 +167,20 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
     <button class="btn-outline" id="wlOpenBtn">☆ 自選股</button>
   </div>
 </header>
+<nav style="background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:190;">
+  <div style="max-width:960px;margin:0 auto;padding:0 16px;display:flex;gap:0;">
+    <button class="tab-btn active" id="tabStock" data-tab="stock">個股分析</button>
+    <button class="tab-btn" id="tabCompare" data-tab="compare">多股比較</button>
+    <button class="tab-btn" id="tabETF" data-tab="etf">ETF 分析</button>
+  </div>
+</nav>
+<div style="display:none"><!-- spacer close header -->
+  </div>
+</header>
 
 <main>
+  <!-- TAB PAGES -->
+  <div class="tab-page active" id="pageStock">
   <div class="status" id="status"><div class="dot"></div><span id="statusText"></span></div>
 
   <div class="welcome" id="welcomeView">
@@ -277,7 +302,83 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
         <table class="peer-table"><thead><tr><th>代號</th><th>名稱</th><th>股價</th><th>P/E</th><th>P/B</th><th>殖利率</th></tr></thead><tbody id="peerTable"></tbody></table>
       </div></div>
     </div>
-  </div>
+  </div><!-- /pageStock -->
+
+  <!-- COMPARE TAB -->
+  <div class="tab-page" id="pageCompare">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">多股比較 — 月營收 &amp; 毛利率</div>
+        <span class="source-note">最多可比較 5 檔</span>
+      </div>
+      <div class="panel-body">
+        <div class="compare-input-row">
+          <input type="search" id="cmpInput" placeholder="輸入代號按 Enter" autocomplete="off" autocapitalize="characters"
+            style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:7px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:160px;">
+          <button class="btn-primary" id="cmpAddBtn" style="padding:7px 14px;font-size:13px;">新增</button>
+          <button class="btn-outline" id="cmpClearBtn" style="font-size:12px;">清除全部</button>
+        </div>
+        <div id="cmpTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:24px;"></div>
+        <div id="cmpStatus" style="font-size:12px;color:var(--text3);margin-bottom:10px;"></div>
+        <div class="panel-header" style="border-top:1px solid var(--border);margin-top:8px;padding-top:12px;border-bottom:none;padding-left:0;padding-right:0;">
+          <div class="panel-title">月營收比較</div>
+        </div>
+        <div class="chart-wrap" style="height:240px;"><canvas id="cmpRevChart"></canvas></div>
+        <div class="panel-header" style="border-top:1px solid var(--border);margin-top:16px;padding-top:12px;border-bottom:none;padding-left:0;padding-right:0;">
+          <div class="panel-title green">毛利率比較</div>
+        </div>
+        <div class="chart-wrap" style="height:240px;"><canvas id="cmpGmChart"></canvas></div>
+      </div>
+    </div>
+  </div><!-- /pageCompare -->
+
+  <!-- ETF TAB -->
+  <div class="tab-page" id="pageETF">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">ETF 查詢</div>
+        <span class="source-note">FinMind / TWSE</span>
+      </div>
+      <div class="panel-body">
+        <div class="compare-input-row">
+          <input type="search" id="etfInput" placeholder="輸入 ETF 代號，如 0050" autocomplete="off" autocapitalize="characters"
+            style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:7px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:200px;">
+          <button class="btn-primary" id="etfSearchBtn" style="padding:7px 14px;font-size:13px;">查詢</button>
+        </div>
+        <div id="etfStatus" style="font-size:12px;color:var(--text3);margin-bottom:12px;"></div>
+        <!-- ETF Info Grid -->
+        <div id="etfInfoGrid" class="etf-grid" style="display:none;margin-bottom:16px;">
+          <div class="metric-card"><div class="metric-label">ETF 名稱</div><div class="metric-value" id="etfName" style="font-size:15px;">--</div></div>
+          <div class="metric-card"><div class="metric-label">ETF 類型</div><div class="metric-value" id="etfType" style="font-size:15px;">--</div><div class="metric-sub" id="etfCategory"></div></div>
+          <div class="metric-card"><div class="metric-label">成立日期</div><div class="metric-value" id="etfDate" style="font-size:15px;">--</div></div>
+          <div class="metric-card"><div class="metric-label">總管理費</div><div class="metric-value" id="etfFee" style="font-size:15px;color:var(--gold)">--</div></div>
+        </div>
+        <!-- Holdings Chart + Table -->
+        <div id="etfHoldingPanel" style="display:none;">
+          <div class="panel-header" style="border-top:1px solid var(--border);padding-top:12px;border-bottom:none;padding-left:0;padding-right:0;margin-bottom:12px;">
+            <div class="panel-title">成分股持倉占比</div>
+            <span class="source-note" id="etfHoldingDate"></span>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <div style="flex:0 0 220px;"><canvas id="etfPieChart" height="220"></canvas></div>
+            <div style="flex:1;min-width:200px;" id="etfHoldingList"></div>
+          </div>
+          <!-- Performance Chart -->
+          <div class="panel-header" style="border-top:1px solid var(--border);margin-top:16px;padding-top:12px;border-bottom:none;padding-left:0;padding-right:0;">
+            <div class="panel-title purple">ETF 績效比較</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input type="search" id="etfCmpInput" placeholder="新增比較 ETF" autocomplete="off"
+                style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:4px 10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:130px;">
+              <button class="btn-primary" id="etfCmpAddBtn" style="padding:4px 12px;font-size:12px;">加入</button>
+            </div>
+          </div>
+          <div id="etfCmpTags" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;"></div>
+          <div class="chart-wrap" style="height:240px;"><canvas id="etfPerfChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /pageETF -->
+
 </main>
 
 <script>
@@ -421,6 +522,21 @@ function doSearch() {
 // =====================================================
 // MAIN LOAD
 // =====================================================
+// Stock name cache
+var stockNameCache = {};
+function fetchStockName(ticker) {
+  if (stockNameCache[ticker]) return Promise.resolve(stockNameCache[ticker]);
+  return fetchJSON(FM + '?dataset=TaiwanStockInfo&data_id=' + ticker, 6000).then(function(d) {
+    var rows = d.data || [];
+    var row = rows[0];
+    if (row && row.stock_name) {
+      stockNameCache[ticker] = row.stock_name;
+      return row.stock_name;
+    }
+    return ticker;
+  }).catch(function() { return ticker; });
+}
+
 function load(ticker) {
   ticker = String(ticker).trim();
   if (!ticker) return;
@@ -433,6 +549,10 @@ function load(ticker) {
   document.getElementById('dashboard').style.display = 'flex';
   resetUI(ticker);
   setStatus('⟳ 載入 ' + ticker + ' 資料中...');
+  // Pre-fetch stock name
+  fetchStockName(ticker).then(function(name) {
+    if (name !== ticker) document.getElementById('hName').textContent = name;
+  });
 
   Promise.allSettled([
     fetchJSON(FM_RT + '?data_id=' + ticker, 8000),
@@ -509,7 +629,9 @@ function renderSnap(ticker, s) {
   var chg = +(s.change_price || price-prev), chgP = +(s.change_rate || (prev?(chg/prev*100):0));
   var isUp = chg >= 0;
   document.getElementById('hTicker').textContent = ticker;
-  document.getElementById('hName').textContent = s.stock_name || ticker;
+  var snapName = s.stock_name || stockNameCache[ticker] || ticker;
+  document.getElementById('hName').textContent = snapName;
+  if (snapName !== ticker) stockNameCache[ticker] = snapName;
   var pe = document.getElementById('hPrice'); pe.textContent=fmt(price); pe.className='price-value '+(isUp?'up':'down');
   var ce = document.getElementById('hChange'); ce.textContent=(isUp?'▲':'▼')+' '+fmt(Math.abs(chg))+'（'+(isUp?'+':'')+fmt(Math.abs(chgP))+'%）'; ce.className='price-change '+(isUp?'up':'down');
   document.getElementById('hPrev').textContent = fmt(prev);
@@ -524,7 +646,9 @@ function renderDaily(ticker, d) {
   var price=+d.close, spread=+d.spread, prev=price-spread;
   var chgP=prev?(spread/prev*100):0, isUp=spread>=0;
   document.getElementById('hTicker').textContent = ticker;
-  document.getElementById('hName').textContent = d.stock_name||ticker;
+  var dailyName = d.stock_name || stockNameCache[ticker] || ticker;
+  document.getElementById('hName').textContent = dailyName;
+  if (dailyName !== ticker) stockNameCache[ticker] = dailyName;
   var pe=document.getElementById('hPrice'); pe.textContent=fmt(price); pe.className='price-value '+(isUp?'up':'down');
   var ce=document.getElementById('hChange'); ce.textContent=(isUp?'▲':'▼')+' '+fmt(Math.abs(spread))+'（'+(isUp?'+':'')+fmt(Math.abs(chgP))+'%）'; ce.className='price-change '+(isUp?'up':'down');
   document.getElementById('hPrev').textContent=fmt(prev);
@@ -783,6 +907,296 @@ function renderAIScore(ticker, perD, finD, cfD, bsD, revD) {
 // =====================================================
 // WATCHLIST
 // =====================================================
+
+// =====================================================
+// COMPARE — 多股比較
+// =====================================================
+var cmpTickers = [];
+var CMP_COLORS = ['#38bdf8','#22c55e','#f59e0b','#a78bfa','#f43f5e'];
+
+function cmpRenderTags() {
+  var el = document.getElementById('cmpTags');
+  el.innerHTML = cmpTickers.map(function(t, i) {
+    return '<span class="compare-tag" style="border-color:'+CMP_COLORS[i%5]+';color:'+CMP_COLORS[i%5]+'">'
+      + (stockNameCache[t]||t) + ' <button class="rm" data-i="'+i+'">×</button></span>';
+  }).join('');
+  el.querySelectorAll('.rm').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      cmpTickers.splice(+btn.dataset.i, 1);
+      cmpRenderTags();
+      cmpRenderCharts();
+    });
+  });
+}
+
+function cmpAddTicker(t) {
+  t = t.trim().replace(/\s/g,'');
+  if (!t || cmpTickers.indexOf(t) >= 0) return;
+  if (cmpTickers.length >= 5) { document.getElementById('cmpStatus').textContent = '最多比較 5 檔'; return; }
+  cmpTickers.push(t);
+  fetchStockName(t); // pre-cache name
+  cmpRenderTags();
+  cmpRenderCharts();
+}
+
+function cmpRenderCharts() {
+  if (!cmpTickers.length) {
+    if (charts['cmpRevChart']) { charts['cmpRevChart'].destroy(); delete charts['cmpRevChart']; }
+    if (charts['cmpGmChart'])  { charts['cmpGmChart'].destroy();  delete charts['cmpGmChart']; }
+    document.getElementById('cmpStatus').textContent = '';
+    return;
+  }
+  document.getElementById('cmpStatus').textContent = '⟳ 載入比較數據...';
+  var revPromises = cmpTickers.map(function(t) {
+    return fetchJSON(FM + '?dataset=TaiwanStockMonthRevenue&data_id=' + t + '&start_date=2022-01-01').catch(function(){return {data:[]};});
+  });
+  var gmPromises = cmpTickers.map(function(t) {
+    return fetchJSON(FM + '?dataset=TaiwanStockFinancialStatements&data_id=' + t + '&start_date=2022-01-01').catch(function(){return {data:[]};});
+  });
+  Promise.all(revPromises.concat(gmPromises)).then(function(results) {
+    var n = cmpTickers.length;
+    var revResults = results.slice(0, n);
+    var gmResults  = results.slice(n);
+
+    // Build common label set (last 24 months)
+    var allRevDates = {};
+    revResults.forEach(function(r){ (r.data||[]).forEach(function(row){ allRevDates[row.date.slice(0,7)]=1; }); });
+    var revLabels = Object.keys(allRevDates).sort().slice(-24);
+
+    var revDatasets = cmpTickers.map(function(t, i) {
+      var rows = revResults[i].data || [];
+      var byMon = {};
+      rows.forEach(function(r){ byMon[r.date.slice(0,7)] = +r.revenue; });
+      return {
+        label: stockNameCache[t]||t,
+        data: revLabels.map(function(m){ return byMon[m]||null; }),
+        borderColor: CMP_COLORS[i], backgroundColor: 'transparent',
+        borderWidth: 2, pointRadius: 2, tension: .3, fill: false
+      };
+    });
+
+    // Build quarter labels for gross margin
+    var allGmDates = {};
+    gmResults.forEach(function(r){ (r.data||[]).forEach(function(row){ allGmDates[row.date]=1; }); });
+    var gmDates = Object.keys(allGmDates).sort().slice(-12);
+    var gmLabels = gmDates.map(function(d){ var p=d.split('-'); return p[0]+'Q'+Math.ceil(parseInt(p[1])/3); });
+
+    var gmDatasets = cmpTickers.map(function(t, i) {
+      var rows = gmResults[i].data || [];
+      var byDate = {};
+      rows.forEach(function(r){ if(!byDate[r.date])byDate[r.date]={}; byDate[r.date][r.type]=+r.value; if(r.origin_name)byDate[r.date][r.origin_name]=+r.value; });
+      var vals = gmDates.map(function(d){
+        var obj = byDate[d]||{};
+        var rev = findVal(obj,['營業收入合計','營業收入淨額','Revenue','NetSales']);
+        var gp  = findVal(obj,['營業毛利','GrossProfit']);
+        return (rev&&gp)?gp/rev*100:null;
+      });
+      return {
+        label: stockNameCache[t]||t,
+        data: vals,
+        borderColor: CMP_COLORS[i], backgroundColor: 'transparent',
+        borderWidth: 2, pointRadius: 3, tension: .3, fill: false
+      };
+    });
+
+    mkChart('cmpRevChart', { type:'line', data:{labels:revLabels, datasets:revDatasets},
+      options: Object.assign({},CD,{scales:{x:CD.scales.x,y:Object.assign({},CD.scales.y,{ticks:{color:'#4a5f7a',callback:function(v){return v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(0)+'M':v;}}})}})});
+    mkChart('cmpGmChart', { type:'line', data:{labels:gmLabels, datasets:gmDatasets},
+      options: Object.assign({},CD,{scales:{x:CD.scales.x,y:Object.assign({},CD.scales.y,{ticks:{color:'#4a5f7a',callback:function(v){return v!=null?v.toFixed(0)+'%':'';}}})}})} );
+
+    document.getElementById('cmpStatus').textContent = '✓ ' + cmpTickers.length + ' 檔數據已載入';
+  }).catch(function(e){ document.getElementById('cmpStatus').textContent = '✗ ' + e.message; });
+}
+
+
+// =====================================================
+// ETF 分析
+// =====================================================
+var ETF_DB = {
+  '0050':  {name:'元大台灣50',      type:'指數型ETF', category:'台股大型股',   fee:'0.46%'},
+  '0056':  {name:'元大高股息',       type:'指數型ETF', category:'高股息策略',   fee:'0.87%'},
+  '00878': {name:'國泰永續高股息',   type:'指數型ETF', category:'ESG高股息',   fee:'0.86%'},
+  '00713': {name:'元大台灣高息低波', type:'指數型ETF', category:'高息低波動',   fee:'0.72%'},
+  '006208':{name:'富邦台50',         type:'指數型ETF', category:'台股大型股',   fee:'0.23%'},
+  '00881': {name:'國泰台灣5G+',      type:'主題型ETF', category:'5G科技',       fee:'0.90%'},
+  '00733': {name:'富邦台灣中小',     type:'指數型ETF', category:'台股中小型',   fee:'0.67%'},
+  '00692': {name:'富邦公司治理',     type:'指數型ETF', category:'公司治理',     fee:'0.79%'},
+};
+var etfCmpTickers = [];
+var etfCurrentTicker = null;
+
+function loadETF(ticker) {
+  ticker = String(ticker).trim().replace(/\s/g,'');
+  if (!ticker) return;
+  etfCurrentTicker = ticker;
+  document.getElementById('etfInput').value = ticker;
+  document.getElementById('etfStatus').textContent = '⟳ 載入 ' + ticker + ' ETF 數據...';
+  document.getElementById('etfInfoGrid').style.display = 'none';
+  document.getElementById('etfHoldingPanel').style.display = 'none';
+
+  // Show static info first
+  var info = ETF_DB[ticker];
+  if (info) {
+    document.getElementById('etfName').textContent     = info.name;
+    document.getElementById('etfType').textContent     = info.type;
+    document.getElementById('etfCategory').textContent = info.category;
+    document.getElementById('etfFee').textContent      = info.fee;
+    document.getElementById('etfDate').textContent     = '--';
+    document.getElementById('etfInfoGrid').style.display = 'grid';
+  } else {
+    fetchStockName(ticker).then(function(name) {
+      document.getElementById('etfName').textContent     = name;
+      document.getElementById('etfType').textContent     = '-- ';
+      document.getElementById('etfCategory').textContent = '';
+      document.getElementById('etfFee').textContent      = '--';
+      document.getElementById('etfDate').textContent     = '--';
+      document.getElementById('etfInfoGrid').style.display = 'grid';
+    });
+  }
+
+  // Fetch ETF holdings from FinMind
+  Promise.all([
+    fetchJSON(FM + '?dataset=TaiwanETFComponents&data_id=' + ticker + '&start_date=' + daysAgo(45), 10000).catch(function(){return {data:[]};}),
+    fetchJSON(FM + '?dataset=TaiwanStockPrice&data_id=' + ticker + '&start_date=' + daysAgo(365), 10000).catch(function(){return {data:[]};})
+  ]).then(function(results) {
+    var holdings = results[0].data || [];
+    var priceData = results[1].data || [];
+
+    // Render holdings
+    if (holdings.length) {
+      renderETFHoldings(ticker, holdings);
+    } else {
+      document.getElementById('etfStatus').textContent = '⚠ 暫無成分股數據（FinMind 免費版部分 ETF 不提供）';
+    }
+
+    // Render performance chart
+    if (priceData.length) {
+      renderETFPerf(ticker, priceData);
+    }
+
+    document.getElementById('etfHoldingPanel').style.display = 'block';
+    if (holdings.length || priceData.length) {
+      document.getElementById('etfStatus').textContent = '✓ ' + ticker + ' ETF 資料載入完成';
+    }
+  }).catch(function(e){
+    document.getElementById('etfStatus').textContent = '✗ ' + e.message;
+  });
+}
+
+function renderETFHoldings(ticker, holdings) {
+  // Get latest date's holdings
+  var dates = {};
+  holdings.forEach(function(r){ dates[r.date]=1; });
+  var latestDate = Object.keys(dates).sort().pop();
+  var latest = holdings.filter(function(r){ return r.date === latestDate; });
+  // Sort by weight desc
+  latest.sort(function(a,b){ return (+b.weight||0)-(+a.weight||0); });
+  var top = latest.slice(0,15);
+  var total = top.reduce(function(s,r){return s+(+r.weight||0);},0);
+
+  document.getElementById('etfHoldingDate').textContent = latestDate + ' 最新';
+
+  // Pie chart
+  var pieCtx = document.getElementById('etfPieChart');
+  if (charts['etfPieChart']) { charts['etfPieChart'].destroy(); delete charts['etfPieChart']; }
+  if (pieCtx) {
+    var pieColors = ['#38bdf8','#22c55e','#f59e0b','#a78bfa','#f43f5e','#fb923c','#34d399','#60a5fa','#f472b6','#a3e635'];
+    charts['etfPieChart'] = new Chart(pieCtx, {
+      type: 'doughnut',
+      data: {
+        labels: top.map(function(r){return r.stock_id;}),
+        datasets:[{data: top.map(function(r){return +(+r.weight).toFixed(2);}),
+          backgroundColor: pieColors, borderColor: '#111827', borderWidth: 2}]
+      },
+      options:{responsive:false,plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#1a2235',borderColor:'#2a3f5f',borderWidth:1,
+          callbacks:{label:function(c){return ' '+c.label+': '+c.raw+'%';}}}}}
+    });
+  }
+
+  // Holding list
+  var listEl = document.getElementById('etfHoldingList');
+  listEl.innerHTML = top.map(function(r,i) {
+    var pct = +(+r.weight).toFixed(2);
+    var barColor = ['#38bdf8','#22c55e','#f59e0b','#a78bfa','#f43f5e'][i%5];
+    return '<div class="etf-holding-row">'
+      + '<span style="width:52px;font-family:JetBrains Mono,monospace;font-size:12px;color:var(--accent)">' + r.stock_id + '</span>'
+      + '<span style="flex:1;font-size:12px;color:var(--text2)">' + (r.stock_name||r.stock_id) + '</span>'
+      + '<div class="etf-bar-wrap"><div class="etf-bar" style="width:'+Math.min(100,pct/top[0].weight*100)+'%;background:'+barColor+'"></div></div>'
+      + '<span style="width:42px;text-align:right;font-size:12px;font-family:JetBrains Mono,monospace;color:var(--text2)">' + pct + '%</span>'
+      + '</div>';
+  }).join('');
+}
+
+function renderETFPerf(ticker, priceData) {
+  var byDate = {};
+  priceData.forEach(function(r){ byDate[r.date] = +r.close; });
+  var dates = Object.keys(byDate).sort();
+  if (!dates.length) return;
+  var base = byDate[dates[0]];
+  var labels = dates.map(function(d){ return d.slice(0,7); });
+  var vals   = dates.map(function(d){ return base?((byDate[d]-base)/base*100):0; });
+
+  var cmpDatasets = [{
+    label: ticker, data: vals, labels: dates,
+    borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,.08)',
+    borderWidth: 2, pointRadius: 0, fill: true, tension: .3
+  }];
+
+  // Add comparison ETFs
+  var perfPromises = etfCmpTickers.map(function(t) {
+    return fetchJSON(FM + '?dataset=TaiwanStockPrice&data_id=' + t + '&start_date=' + daysAgo(365), 10000).catch(function(){return {data:[]};});
+  });
+  Promise.all(perfPromises).then(function(results) {
+    results.forEach(function(res, i) {
+      var t = etfCmpTickers[i];
+      var rows = res.data || [];
+      if (!rows.length) return;
+      var bd2 = {}; rows.forEach(function(r){bd2[r.date]=+r.close;});
+      var d2 = Object.keys(bd2).sort();
+      var b2 = bd2[d2[0]];
+      cmpDatasets.push({
+        label: ETF_DB[t]?ETF_DB[t].name:t,
+        data: dates.map(function(d){ return bd2[d]!=null&&b2?((bd2[d]-b2)/b2*100):null; }),
+        borderColor: CMP_COLORS[(i+1)%5], backgroundColor: 'transparent',
+        borderWidth: 2, pointRadius: 0, fill: false, tension: .3
+      });
+    });
+    mkChart('etfPerfChart', {type:'line',
+      data:{labels:dates, datasets:cmpDatasets},
+      options:Object.assign({},CD,{
+        plugins:Object.assign({},CD.plugins,{tooltip:Object.assign({},CD.plugins.tooltip,{
+          callbacks:{label:function(c){return ' '+c.dataset.label+': '+(c.raw!=null?c.raw.toFixed(1)+'%':'--');}}})}),
+        scales:{x:{grid:{color:'#1a2235'},ticks:{color:'#4a5f7a',maxTicksLimit:8,callback:function(v,i,a){return dates[i]?dates[i].slice(0,7):v;}}},
+          y:{grid:{color:'#1a2235'},ticks:{color:'#4a5f7a',callback:function(v){return v.toFixed(0)+'%';}}}}
+      })
+    });
+  });
+}
+
+function etfCmpAdd(t) {
+  t = t.trim().replace(/\s/g,'');
+  if (!t || etfCmpTickers.indexOf(t)>=0 || t===etfCurrentTicker) return;
+  if (etfCmpTickers.length >= 4) return;
+  etfCmpTickers.push(t);
+  renderETFCmpTags();
+  if (etfCurrentTicker) loadETF(etfCurrentTicker);
+}
+function renderETFCmpTags() {
+  var el = document.getElementById('etfCmpTags');
+  el.innerHTML = etfCmpTickers.map(function(t,i){
+    return '<span class="compare-tag" style="border-color:'+CMP_COLORS[(i+1)%5]+';color:'+CMP_COLORS[(i+1)%5]+'">'
+      +(ETF_DB[t]?ETF_DB[t].name:t)+' <button class="rm" data-i="'+i+'">×</button></span>';
+  }).join('');
+  el.querySelectorAll('.rm').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      etfCmpTickers.splice(+btn.dataset.i,1);
+      renderETFCmpTags();
+      if (etfCurrentTicker) loadETF(etfCurrentTicker);
+    });
+  });
+}
+
 function saveWL(){ localStorage.setItem('tw_watchlist',JSON.stringify(watchlist)); }
 function updateFavBtn(ticker){
   var btn=document.getElementById('btnFav'), inList=watchlist.some(function(w){return w.id===ticker;});
@@ -834,6 +1248,44 @@ function init() {
   document.querySelectorAll('.chip[data-ticker]').forEach(function(el) {
     el.addEventListener('click', function() { load(el.dataset.ticker); });
   });
+
+  // ── Tab navigation ──────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      document.querySelectorAll('.tab-page').forEach(function(p){ p.classList.remove('active'); });
+      btn.classList.add('active');
+      var pageId = 'page' + btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1);
+      var page = document.getElementById(pageId);
+      if (page) page.classList.add('active');
+    });
+  });
+
+  // ── Compare tab ─────────────────────────────────────
+  var cmpInp = document.getElementById('cmpInput');
+  var cmpAdd = document.getElementById('cmpAddBtn');
+  var cmpClr = document.getElementById('cmpClearBtn');
+  if (cmpInp) {
+    cmpInp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); cmpAddTicker(cmpInp.value); cmpInp.value=''; }
+    });
+  }
+  if (cmpAdd) { cmpAdd.addEventListener('click', function(){ cmpAddTicker(cmpInp.value); cmpInp.value=''; }); }
+  if (cmpClr) { cmpClr.addEventListener('click', function(){ cmpTickers=[]; cmpRenderTags(); cmpRenderCharts(); }); }
+
+  // ── ETF tab ──────────────────────────────────────────
+  var etfInp = document.getElementById('etfInput');
+  var etfSrch = document.getElementById('etfSearchBtn');
+  var etfCmpInp = document.getElementById('etfCmpInput');
+  var etfCmpAdd = document.getElementById('etfCmpAddBtn');
+  if (etfInp) {
+    etfInp.addEventListener('keydown', function(e){ if(e.key==='Enter'){e.preventDefault();loadETF(etfInp.value);} });
+  }
+  if (etfSrch) { etfSrch.addEventListener('click', function(){ loadETF(etfInp.value); }); }
+  if (etfCmpInp) {
+    etfCmpInp.addEventListener('keydown', function(e){ if(e.key==='Enter'){e.preventDefault();etfCmpAdd(etfCmpInp.value);etfCmpInp.value='';} });
+  }
+  if (etfCmpAdd) { etfCmpAdd.addEventListener('click', function(){ etfCmpAdd(etfCmpInp.value); etfCmpInp.value=''; }); }
 
   renderWLDrawer();
 }
