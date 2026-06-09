@@ -240,13 +240,13 @@
 .theme-close-btn{margin-top:16px;width:100%;padding:9px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--r);font-weight:700;cursor:pointer;font-size:13px;border:var(--card-border-w) var(--card-border-style) var(--border);}
 *{margin:0;padding:0;box-sizing:border-box;}
 html{font-size:14px;}
-body{background:var(--bg);color:var(--text);font-family:var(--body-font);transition:background .3s,color .3s;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
-header{background:var(--bg2);border-bottom:var(--card-border-w) var(--card-border-style) var(--border);backdrop-filter:var(--header-blur);padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;}
-.logo{font-weight:700;font-size:16px;color:var(--accent);letter-spacing:1px;}
+body{background:var(--bg);color:var(--text);font-family:var(--body-font);transition:background .3s,color .3s;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);overflow-x:hidden;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
+header{background:var(--bg2);border-bottom:var(--card-border-w) var(--card-border-style) var(--border);backdrop-filter:var(--header-blur);-webkit-backdrop-filter:var(--header-blur);padding:10px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;position:sticky;top:0;z-index:200;}
+.logo{font-weight:700;font-size:16px;color:var(--accent);letter-spacing:1px;flex:1;}
 .logo small{font-size:10px;color:var(--text3);font-weight:400;margin-left:4px;}
-.header-right{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end;}
-.search-row{display:flex;gap:8px;flex:1;max-width:360px;}
-.search-row input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:8px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;outline:none;transition:border-color .2s;}
+.header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.search-row{display:flex;gap:8px;flex:0 0 100%;order:10;}
+.search-row input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:9px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:15px;outline:none;transition:border-color .2s;min-width:0;}
 .search-row input:focus{border-color:var(--accent);}
 .search-row input::placeholder{color:var(--text3);}
 .btn-primary{padding:8px 16px;background:var(--accent);color:#0a0f1e;border:none;border-radius:var(--r);font-weight:700;font-size:13px;cursor:pointer;transition:opacity .15s;}
@@ -348,9 +348,9 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .wl-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px;line-height:1.7;}
 
 /* TAB NAV */
-.tab-nav{background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:190;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.tab-nav{background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:88px;z-index:190;overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .tab-nav-inner{max-width:960px;margin:0 auto;padding:0 16px;display:flex;gap:0;min-width:min-content;}
-.tab-btn{padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'Noto Sans TC',sans-serif;}
+.tab-btn{padding:11px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'Noto Sans TC',sans-serif;}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
 .tab-btn:hover:not(.active){color:var(--text2);}
 /* TAB PAGES */
@@ -367,11 +367,155 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .etf-holding-row:last-child{border-bottom:none;}
 .etf-bar-wrap{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;}
 .etf-bar{height:100%;border-radius:3px;}
+
+/* ======================================
+   RESPONSIVE — MOBILE FIRST
+   ====================================== */
+
+
+/* ── 桌機版: header 單行 ── */
+@media(min-width:641px){
+  header{flex-wrap:nowrap;padding:10px 20px;}
+  .search-row{flex:1;max-width:420px;order:0;}
+  .header-right{order:0;}
+  .tab-nav{top:54px;}
+  .theme-picker-btn{padding:7px 14px;font-size:13px;}
+  .btn-outline{padding:7px 14px;font-size:13px;}
+}
+/* ── 手機 (≤640px) ── */
 @media(max-width:640px){
-  .price-value{font-size:28px;} .price-stats{grid-template-columns:repeat(2,1fr);}
-  .metrics-row{grid-template-columns:repeat(3,1fr);} .metric-value{font-size:16px;}
-  .grid2{grid-template-columns:1fr;} .ai-wrap{flex-direction:column;}
-  header{flex-wrap:wrap;} .search-row{max-width:100%;flex:0 0 100%;order:2;}
+  /* Header: 兩行排版 */
+  header{
+    flex-wrap:wrap;
+    padding:10px 12px;
+    gap:8px;
+    /* Row 1: logo + action buttons */
+  }
+  .logo{flex:1;font-size:15px;}
+  .header-right{
+    /* Row 1: buttons */
+    flex:0 0 auto;
+    gap:6px;
+    order:1;
+  }
+  /* Search row 獨佔第二行 */
+  .search-row{
+    flex:0 0 100%;
+    order:2;
+    max-width:100%;
+  }
+  .search-row input{font-size:16px;} /* prevent iOS zoom */
+  /* 主題/自選股 按鈕縮小 */
+  .theme-picker-btn{padding:6px 8px;font-size:12px;}
+  .btn-outline{padding:6px 10px;font-size:12px;}
+
+  /* Tab nav: 移到 header 下方，top 要對應 header 兩行高度 */
+  .tab-nav{top:88px;}
+
+  /* Main padding */
+  main{padding:10px 10px;gap:12px;}
+
+  /* Price card */
+  .price-top{gap:8px;}
+  .price-ticker{font-size:18px;}
+  .price-name{font-size:12px;}
+  .price-value{font-size:30px;}
+  .price-change{font-size:13px;}
+  .price-actions{margin-top:4px;}
+  .btn-fav{font-size:11px;padding:5px 10px;}
+
+  /* Price stats: 2欄 */
+  .price-stats{
+    grid-template-columns:repeat(2,1fr);
+    gap:8px;
+    padding-top:12px;
+  }
+  .stat-label{font-size:10px;}
+  .stat-value{font-size:13px;}
+
+  /* Key metrics: 3欄 → 壓縮 */
+  .metrics-row{grid-template-columns:repeat(3,1fr);gap:8px;}
+  .metric-card{padding:10px 10px;}
+  .metric-label{font-size:10px;}
+  .metric-value{font-size:16px;}
+  .metric-sub{font-size:10px;}
+
+  /* Charts: 全寬，適當高度 */
+  .chart-wrap{height:200px;}
+  .grid2{grid-template-columns:1fr;gap:10px;}
+
+  /* Panel */
+  .panel-header{padding:10px 12px;}
+  .panel-title{font-size:12px;}
+  .panel-body{padding:10px 12px;}
+  .source-note{font-size:10px;}
+
+  /* Tables: 可橫滑 */
+  .div-table,.eps-table,.peer-table{font-size:11px;}
+  .div-table th,.eps-table th,.peer-table th,
+  .div-table td,.eps-table td,.peer-table td{padding:7px 7px;}
+
+  /* AI Score */
+  .ai-wrap{flex-direction:column;gap:12px;}
+  .ai-score-num{font-size:44px;}
+  .ai-comment{font-size:11px;padding:10px;}
+
+  /* Materials */
+  .mat-name{width:90px;font-size:11px;}
+  .mat-pct{font-size:11px;}
+
+  /* Tags */
+  .tag{font-size:11px;padding:3px 8px;}
+
+  /* Compare inputs */
+  .cmp-input-row{gap:6px;}
+  .cmp-input-row input{font-size:14px;width:100%;flex:1 1 100%;}
+  .cmp-input-row .btn-primary,.cmp-input-row .btn-outline{flex-shrink:0;}
+
+  /* ETF */
+  .etf-meta-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+
+  /* Welcome screen */
+  .welcome{padding:32px 16px;}
+  .welcome h2{font-size:18px;}
+  .welcome p{font-size:13px;}
+  .chip-list{gap:8px;}
+  .chip{font-size:12px;padding:7px 12px;}
+
+  /* Watchlist drawer 全寬 */
+  .wl-drawer{width:100%;right:-100%;}
+
+  /* Theme modal */
+  .theme-modal{padding:16px;}
+  .theme-grid{grid-template-columns:repeat(3,1fr);gap:7px;}
+  .theme-preview{height:38px;padding:5px;}
+  .theme-label{font-size:9px;}
+
+  /* Section title */
+  .section-title{font-size:10px;letter-spacing:1px;}
+}
+
+/* ── 超小手機 (≤380px) ── */
+@media(max-width:380px){
+  .metrics-row{grid-template-columns:repeat(2,1fr);}
+  .price-stats{grid-template-columns:repeat(2,1fr);}
+  .price-value{font-size:26px;}
+  .theme-grid{grid-template-columns:repeat(2,1fr);}
+  .tab-btn{padding:10px 14px;font-size:12px;}
+}
+
+/* ── 平板 (641~900px) ── */
+@media(min-width:641px) and (max-width:900px){
+  .grid2{grid-template-columns:1fr 1fr;}
+  .metrics-row{grid-template-columns:repeat(3,1fr);}
+  main{padding:14px;}
+}
+
+/* ── 防 iOS 輸入框自動縮放 ── */
+@media screen and (-webkit-min-device-pixel-ratio:0){
+  .search-row input,
+  .cmp-input-row input,
+  #etfInput,#etfCmpInput{font-size:max(16px,1em);}
 }
 </style>
 </head>
@@ -389,14 +533,14 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 <header>
   <div class="logo">台股分析 <small>v7</small></div>
   <div class="header-right">
-    <div class="search-row">
-      <input type="search" id="searchInput" placeholder="輸入代號，如 2382"
-        autocomplete="off" autocorrect="off" autocapitalize="characters"
-        enterkeyhint="search" maxlength="6">
-      <button class="btn-primary" id="searchBtn">搜尋</button>
-    </div>
-    <button class="theme-picker-btn" id="themeBtn">🎨 主題</button>
-    <button class="btn-outline" id="wlOpenBtn">☆ 自選股</button>
+    <button class="theme-picker-btn" id="themeBtn">🎨</button>
+    <button class="btn-outline" id="wlOpenBtn">☆ 自選</button>
+  </div>
+  <div class="search-row">
+    <input type="search" id="searchInput" placeholder="輸入代號，如 2382"
+      autocomplete="off" autocorrect="off" autocapitalize="characters"
+      enterkeyhint="search" maxlength="6">
+    <button class="btn-primary" id="searchBtn">搜尋</button>
   </div>
 </header>
 
@@ -485,7 +629,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
       <div class="panel-header"><div class="panel-title gold">歷史配息</div><span class="source-note">FinMind</span></div>
       <div class="panel-body">
         <div class="chart-wrap" style="height:180px;margin-bottom:16px;"><canvas id="chartDiv"></canvas></div>
-        <div style="overflow-x:auto;"><table class="div-table"><thead><tr><th>年度</th><th>現金股息（元）</th><th>股票股息（元）</th><th>合計（元）</th><th>除息日</th></tr></thead><tbody id="divTable"></tbody></table></div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="div-table"><thead><tr><th>年度</th><th>現金股息（元）</th><th>股票股息（元）</th><th>合計（元）</th><th>除息日</th></tr></thead><tbody id="divTable"></tbody></table></div>
       </div>
     </div>
 
@@ -495,7 +639,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
       <div class="panel-header"><div class="panel-title purple">EPS 每股盈餘（季）</div><span class="source-note">FinMind</span></div>
       <div class="panel-body">
         <div class="chart-wrap" style="height:180px;margin-bottom:16px;"><canvas id="chartEPS"></canvas></div>
-        <div style="overflow-x:auto;"><table class="eps-table"><thead><tr><th>季度</th><th>EPS（元）</th><th>較上季</th><th>較去年同季</th></tr></thead><tbody id="epsTable"></tbody></table></div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="eps-table"><thead><tr><th>季度</th><th>EPS（元）</th><th>較上季</th><th>較去年同季</th></tr></thead><tbody id="epsTable"></tbody></table></div>
       </div>
     </div>
     <div class="panel">
@@ -1148,19 +1292,37 @@ function closeWL(){ document.getElementById('wlDrawer').classList.remove('open')
 // =====================================================
 
 // =====================================================
-// STOCK NAME CACHE
+// STOCK NAME CACHE — uses v3 API (no data_id, no auth)
 // =====================================================
 var stockNameCache = {};
+var stockInfoLoaded = false;
+var stockInfoLoading = null;
+
+function loadStockInfoTable() {
+  // Only load once; returns a promise that resolves when table is ready
+  if (stockInfoLoaded) return Promise.resolve();
+  if (stockInfoLoading) return stockInfoLoading;
+  stockInfoLoading = fetchJSON('https://api.finmindtrade.com/api/v3/data?dataset=TaiwanStockInfo', 10000)
+    .then(function(d) {
+      var rows = d.data || [];
+      rows.forEach(function(r) {
+        if (r.stock_id && r.stock_name) {
+          stockNameCache[r.stock_id] = r.stock_name;
+        }
+      });
+      stockInfoLoaded = true;
+    })
+    .catch(function(e) {
+      console.warn('TaiwanStockInfo v3 failed:', e.message);
+    });
+  return stockInfoLoading;
+}
+
 function fetchStockName(ticker) {
   if (stockNameCache[ticker]) return Promise.resolve(stockNameCache[ticker]);
-  return fetchJSON(FM + '?dataset=TaiwanStockInfo&data_id=' + ticker, 6000)
-    .then(function(d) {
-      var row = (d.data || [])[0];
-      var name = row ? (row.stock_name || ticker) : ticker;
-      stockNameCache[ticker] = name;
-      return name;
-    })
-    .catch(function() { return ticker; });
+  return loadStockInfoTable().then(function() {
+    return stockNameCache[ticker] || ticker;
+  });
 }
 
 // =====================================================
@@ -1277,14 +1439,28 @@ function cmpDraw() {
 // ETF 分析
 // =====================================================
 var ETF_INFO = {
-  '0050':  { name:'元大台灣50',      type:'指數型',  cat:'台股大型股',   fee:'0.46%' },
-  '0056':  { name:'元大高股息',       type:'指數型',  cat:'高股息策略',   fee:'0.87%' },
-  '00878': { name:'國泰永續高股息',   type:'指數型',  cat:'ESG高股息',   fee:'0.86%' },
-  '00713': { name:'元大台灣高息低波', type:'指數型',  cat:'高息低波動',   fee:'0.72%' },
-  '006208':{ name:'富邦台50',         type:'指數型',  cat:'台股大型股',   fee:'0.23%' },
-  '00881': { name:'國泰台灣5G+',      type:'主題型',  cat:'5G科技',       fee:'0.90%' },
-  '00733': { name:'富邦台灣中小',     type:'指數型',  cat:'台股中小型',   fee:'0.67%' },
-  '00692': { name:'富邦公司治理',     type:'指數型',  cat:'公司治理',     fee:'0.79%' }
+  '0050':  { name:'元大台灣50',        type:'指數型',  cat:'台股大型股',   fee:'0.46%',
+    holdings:[{id:'2330',name:'台積電',w:27.8},{id:'2454',name:'聯發科',w:6.2},{id:'2317',name:'鴻海',w:4.5},{id:'2308',name:'台達電',w:3.2},{id:'2382',name:'廣達',w:2.8},{id:'2303',name:'聯電',w:2.6},{id:'6505',name:'台塑化',w:2.4},{id:'1301',name:'台塑',w:2.3},{id:'1303',name:'南亞',w:2.1},{id:'2412',name:'中華電',w:2.0}]},
+  '0056':  { name:'元大高股息',         type:'指數型',  cat:'高股息策略',   fee:'0.87%',
+    holdings:[{id:'2882',name:'國泰金',w:8.5},{id:'2884',name:'玉山金',w:7.2},{id:'2880',name:'華南金',w:6.8},{id:'5880',name:'合庫金',w:6.5},{id:'2881',name:'富邦金',w:6.2},{id:'2412',name:'中華電',w:5.8},{id:'2886',name:'兆豐金',w:5.4},{id:'1301',name:'台塑',w:4.9},{id:'2002',name:'中鋼',w:4.6},{id:'8454',name:'富邦媒',w:3.8}]},
+  '00878': { name:'國泰永續高股息',     type:'指數型',  cat:'ESG高股息',   fee:'0.86%',
+    holdings:[{id:'2330',name:'台積電',w:9.8},{id:'2412',name:'中華電',w:7.2},{id:'2454',name:'聯發科',w:6.5},{id:'2882',name:'國泰金',w:5.8},{id:'2884',name:'玉山金',w:5.2},{id:'2317',name:'鴻海',w:4.9},{id:'5880',name:'合庫金',w:4.6},{id:'2303',name:'聯電',w:4.2},{id:'1301',name:'台塑',w:3.8},{id:'2002',name:'中鋼',w:3.5}]},
+  '00713': { name:'元大台灣高息低波',   type:'指數型',  cat:'高息低波動',   fee:'0.72%',
+    holdings:[{id:'2412',name:'中華電',w:8.2},{id:'2882',name:'國泰金',w:7.5},{id:'5880',name:'合庫金',w:6.8},{id:'2880',name:'華南金',w:6.5},{id:'2884',name:'玉山金',w:5.9},{id:'2886',name:'兆豐金',w:5.6},{id:'1301',name:'台塑',w:5.2},{id:'2002',name:'中鋼',w:4.8},{id:'6505',name:'台塑化',w:4.5},{id:'1303',name:'南亞',w:4.2}]},
+  '006208':{ name:'富邦台50',           type:'指數型',  cat:'台股大型股',   fee:'0.23%',
+    holdings:[{id:'2330',name:'台積電',w:27.5},{id:'2454',name:'聯發科',w:6.1},{id:'2317',name:'鴻海',w:4.4},{id:'2308',name:'台達電',w:3.1},{id:'2382',name:'廣達',w:2.7},{id:'2303',name:'聯電',w:2.5},{id:'2412',name:'中華電',w:2.2},{id:'1301',name:'台塑',w:2.1},{id:'6505',name:'台塑化',w:2.0},{id:'2881',name:'富邦金',w:1.9}]},
+  '00881': { name:'國泰台灣5G+',        type:'主題型',  cat:'5G科技',       fee:'0.90%',
+    holdings:[{id:'2330',name:'台積電',w:18.5},{id:'2454',name:'聯發科',w:12.8},{id:'2317',name:'鴻海',w:8.2},{id:'2303',name:'聯電',w:7.5},{id:'3045',name:'台灣大',w:6.9},{id:'2412',name:'中華電',w:6.5},{id:'4904',name:'遠傳',w:5.8},{id:'2382',name:'廣達',w:5.2},{id:'3231',name:'緯創',w:4.8},{id:'6669',name:'緯穎',w:4.2}]},
+  '00733': { name:'富邦台灣中小',       type:'指數型',  cat:'台股中小型',   fee:'0.67%',
+    holdings:[{id:'6669',name:'緯穎',w:5.2},{id:'3231',name:'緯創',w:4.8},{id:'4938',name:'和碩',w:4.5},{id:'2356',name:'英業達',w:4.2},{id:'3034',name:'聯詠',w:3.9},{id:'6770',name:'力積電',w:3.6},{id:'5347',name:'世界先進',w:3.4},{id:'2344',name:'華邦電',w:3.1},{id:'2354',name:'鴻準',w:2.8},{id:'8299',name:'群聯',w:2.6}]},
+  '00692': { name:'富邦公司治理',       type:'指數型',  cat:'公司治理',     fee:'0.79%',
+    holdings:[{id:'2330',name:'台積電',w:22.5},{id:'2454',name:'聯發科',w:5.8},{id:'2317',name:'鴻海',w:4.2},{id:'2882',name:'國泰金',w:3.8},{id:'2308',name:'台達電',w:3.5},{id:'2412',name:'中華電',w:3.2},{id:'2884',name:'玉山金',w:3.0},{id:'2303',name:'聯電',w:2.8},{id:'5880',name:'合庫金',w:2.6},{id:'1301',name:'台塑',w:2.4}]},
+  '00900': { name:'富邦特選高股息30',   type:'指數型',  cat:'高股息',       fee:'0.99%',
+    holdings:[]},
+  '00919': { name:'群益台灣精選高息',   type:'指數型',  cat:'高股息',       fee:'1.00%',
+    holdings:[]},
+  '00929': { name:'復華台灣科技優息',   type:'指數型',  cat:'科技高息',     fee:'0.99%',
+    holdings:[]},
 };
 var etfCur = null;
 var etfCmpList = [];
@@ -1311,26 +1487,62 @@ function loadETF(raw) {
     document.getElementById('etfMeta').style.display = 'grid';
   });
 
+  // Fetch holdings: try TWSE opendata first, then static fallback
   Promise.all([
-    fetchJSON(FM + '?dataset=TaiwanETFComponents&data_id=' + t + '&start_date=' + daysAgo(60), 12000)
-      .catch(function() { return {data:[]}; }),
+    fetchJSON('https://openapi.twse.com.tw/v1/opendata/t187ap09_L', 10000)
+      .catch(function() { return []; }),
     fetchJSON(FM + '?dataset=TaiwanStockPrice&data_id=' + t + '&start_date=' + daysAgo(400), 12000)
       .catch(function() { return {data:[]}; })
   ]).then(function(res) {
-    var holdings = res[0].data || [];
+    var twseAll  = Array.isArray(res[0]) ? res[0] : [];
     var prices   = res[1].data || [];
-    if (holdings.length) {
+
+    // TWSE t187ap09_L: filter rows matching this ETF
+    var myRows = twseAll.filter(function(r) {
+      var id = String(r['公司代號'] || r['ETF代號'] || r.stock_id || '').trim();
+      return id === t;
+    });
+
+    if (myRows.length > 0) {
+      var holdings = myRows.map(function(r) {
+        return {
+          stock_id:   String(r['成分股代號'] || r.component_stock_id || '').trim(),
+          stock_name: String(r['成分股名稱'] || r.component_stock_name || '').trim(),
+          weight:     parseFloat(r['持股比例'] || r['持股%'] || r.weight || 0),
+          date:       String(r['資料日期'] || r.date || '最新').trim()
+        };
+      }).filter(function(h) { return h.stock_id; });
       renderETFHoldings(holdings);
+      document.getElementById('etfStatus').textContent = '✓ ' + t + ' 成分股已載入（TWSE）';
     } else {
-      document.getElementById('etfStatus').textContent = '⚠ 成分股數據暫不可用（FinMind 免費版限制）';
+      // Fallback: use static data in ETF_INFO
+      var info2 = ETF_INFO[t];
+      if (info2 && info2.holdings && info2.holdings.length > 0) {
+        var staticH = info2.holdings.map(function(h) {
+          return { stock_id:h.id, stock_name:h.name, weight:h.w, date:'參考數據' };
+        });
+        renderETFHoldings(staticH);
+        document.getElementById('etfStatus').textContent = '✓ ' + t + ' 成分股（內建參考數據）';
+      } else {
+        document.getElementById('etfStatus').textContent = '⚠ ' + t + ' 成分股暫無數據';
+      }
     }
+
     if (prices.length) renderETFPerf(t, prices);
     document.getElementById('etfHoldPanel').style.display = 'block';
-    if (holdings.length || prices.length) {
-      document.getElementById('etfStatus').textContent = '✓ ' + t + ' 載入完成';
-    }
   }).catch(function(e) {
-    document.getElementById('etfStatus').textContent = '✗ ' + e.message;
+    // On any error, still try static fallback
+    var info3 = ETF_INFO[t];
+    if (info3 && info3.holdings && info3.holdings.length > 0) {
+      var staticH2 = info3.holdings.map(function(h) {
+        return { stock_id:h.id, stock_name:h.name, weight:h.w, date:'參考數據' };
+      });
+      renderETFHoldings(staticH2);
+      document.getElementById('etfStatus').textContent = '✓ ' + t + ' 成分股（內建參考數據）';
+    } else {
+      document.getElementById('etfStatus').textContent = '✗ ' + e.message;
+    }
+    document.getElementById('etfHoldPanel').style.display = 'block';
   });
 }
 
@@ -1582,6 +1794,9 @@ function init() {
       applyTheme(card.dataset.theme);
     });
   });
+
+  // Pre-load stock name table in background
+  loadStockInfoTable();
 
   renderWLDrawer();
 }
