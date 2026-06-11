@@ -7,6 +7,8 @@
 <title>台股分析 v7</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@400;700;900&family=Bangers&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
 <style>
 /* ===== DEFAULT THEME (Dark) ===== */
 :root{
@@ -292,6 +294,10 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .panel-body{padding:16px;}
 .source-note{font-size:11px;color:var(--text3);}
 .chart-wrap{position:relative;height:220px;}
+.chart-hint{font-size:10px;color:var(--text3);text-align:right;padding:3px 4px 0;user-select:none;}
+.chart-zoom-btns{display:flex;justify-content:flex-end;gap:5px;padding:4px 4px 0;}
+.czb{padding:2px 9px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-size:11px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .15s;}
+.czb:hover{border-color:var(--accent);color:var(--accent);}
 .section-title{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:4px 0;border-bottom:1px solid var(--border);}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .div-table,.eps-table,.peer-table{width:100%;border-collapse:collapse;font-size:13px;}
@@ -887,6 +893,31 @@ function findVal(obj, keywords) {
 // =====================================================
 Chart.defaults.color = '#94a3b8';
 Chart.defaults.borderColor = '#1e2d47';
+
+// ── Global zoom/pan plugin defaults ──────────────────────
+var ZOOM_PLUGIN_CFG = {
+  zoom: {
+    wheel: { enabled: true, speed: 0.08 },
+    pinch: { enabled: true },
+    mode: 'x',
+    onZoomComplete: function(ctx) {
+      // Show reset button when zoomed
+      var wrap = ctx.chart.canvas.closest('.chart-zoom-wrap');
+      if (wrap) {
+        var btn = wrap.querySelector('.czb-reset');
+        if (btn) btn.style.display = 'inline-block';
+      }
+    }
+  },
+  pan: {
+    enabled: true,
+    mode: 'x',
+    threshold: 5,
+  },
+  limits: {
+    x: { minRange: 3 }
+  }
+};
 // Theme-aware chart color update
 function updateChartDefaults() {
   var style = getComputedStyle(document.documentElement);
@@ -913,7 +944,31 @@ function mkChart(id, cfg) {
   if (charts[id]) { charts[id].destroy(); }
   var el = document.getElementById(id);
   if (!el) return;
+
+  // Inject zoom+pan plugin config
+  if (!cfg.options) cfg.options = {};
+  if (!cfg.options.plugins) cfg.options.plugins = {};
+  cfg.options.plugins.zoom = ZOOM_PLUGIN_CFG;
+
   charts[id] = new Chart(el, cfg);
+
+  // Add zoom control UI around the canvas
+  var wrap = el.parentElement; // .chart-wrap
+  if (wrap && !wrap.querySelector('.chart-zoom-btns')) {
+    // Replace .chart-wrap with a .chart-zoom-wrap container
+    wrap.classList.add('chart-zoom-wrap');
+    var hints = document.createElement('div');
+    hints.innerHTML =
+      '<div class="chart-zoom-btns">'
+      + '<span class="chart-hint">🖱 滾輪縮放 · 拖曳移動</span>'
+      + '<button class="czb czb-reset" style="display:none;" data-chart="'+id+'">↺ 重置</button>'
+      + '</div>';
+    wrap.parentElement.insertBefore(hints, wrap.nextSibling);
+    hints.querySelector('.czb-reset').addEventListener('click', function() {
+      var ch = charts[this.dataset.chart];
+      if (ch) { ch.resetZoom(); this.style.display='none'; }
+    });
+  }
 }
 
 // =====================================================
