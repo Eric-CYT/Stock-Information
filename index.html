@@ -333,19 +333,42 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .chip:hover{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.06);}
 .wl-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;}
 .wl-overlay.show{display:block;}
-.wl-drawer{position:fixed;top:0;right:-300px;width:280px;height:100vh;background:var(--bg2);border-left:1px solid var(--border);z-index:300;transition:right .25s;display:flex;flex-direction:column;}
+
+/* 側拉抽屜模式（預設）*/
+.wl-drawer{
+  position:fixed;top:0;right:-300px;width:260px;height:100vh;
+  background:var(--bg2);border-left:1px solid var(--border);
+  z-index:300;transition:right .25s,width .25s;
+  display:flex;flex-direction:column;
+}
 .wl-drawer.open{right:0;}
-.wl-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);}
-.wl-title{font-weight:700;}
-.wl-close{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;}
-.wl-list{flex:1;overflow-y:auto;padding:8px 0;}
-.wl-item{display:flex;align-items:center;padding:10px 16px;cursor:pointer;gap:10px;border-bottom:1px solid rgba(30,45,71,.4);}
+
+/* 固定模式：與主內容並排 */
+.wl-drawer.pinned{
+  position:static;height:auto;right:0;
+  width:220px;flex-shrink:0;border-left:none;
+  border:1px solid var(--border);border-radius:8px;
+  transition:none;max-height:600px;
+}
+
+/* 主佈局有 pinned 自選股時並排 */
+.app-layout{display:flex;align-items:flex-start;gap:12px;}
+.app-layout .main-col{flex:1;min-width:0;}
+
+.wl-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);}
+.wl-title{font-weight:700;font-size:13px;}
+.wl-actions{display:flex;gap:4px;align-items:center;}
+.wl-pin-btn,.wl-close{background:none;border:1px solid var(--border2);color:var(--text2);font-size:12px;cursor:pointer;border-radius:4px;padding:3px 8px;transition:all .2s;}
+.wl-pin-btn:hover,.wl-close:hover{border-color:var(--accent);color:var(--accent);}
+.wl-pin-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(245,158,11,.08);}
+.wl-list{flex:1;overflow-y:auto;padding:4px 0;}
+.wl-item{display:flex;align-items:center;padding:9px 12px;cursor:pointer;gap:8px;border-bottom:1px solid rgba(30,45,71,.3);}
 .wl-item:hover{background:var(--bg3);}
-.wl-ticker{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);}
-.wl-name{font-size:12px;color:var(--text3);flex:1;}
-.wl-remove{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;}
+.wl-ticker{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);font-size:12px;min-width:38px;}
+.wl-name{font-size:11px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.wl-remove{background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
 .wl-remove:hover{color:var(--down);}
-.wl-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px;line-height:1.7;}
+.wl-empty{padding:20px 14px;text-align:center;color:var(--text3);font-size:12px;line-height:1.7;}
 
 /* TAB NAV */
 .tab-nav{background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:88px;z-index:190;overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -484,6 +507,8 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 
   /* Watchlist drawer 全寬 */
   .wl-drawer{width:100%;right:-100%;}
+  .wl-pin-btn{display:none;}
+  .wl-drawer.pinned{position:fixed;width:100%;border-radius:0;}
 
   /* Theme modal */
   .theme-modal{padding:16px;}
@@ -524,8 +549,11 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 <div class="wl-overlay" id="wlOverlay"></div>
 <div class="wl-drawer" id="wlDrawer">
   <div class="wl-header">
-    <span class="wl-title">★ 自選股清單</span>
-    <button class="wl-close" id="wlCloseBtn">×</button>
+    <span class="wl-title">★ 自選股</span>
+    <div class="wl-actions">
+      <button class="wl-pin-btn" id="wlPinBtn" title="固定顯示">📌 固定</button>
+      <button class="wl-close" id="wlCloseBtn">✕</button>
+    </div>
   </div>
   <div class="wl-list" id="wlList"></div>
 </div>
@@ -551,7 +579,9 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
     <button class="tab-btn" data-target="pageETF">ETF 分析</button>
   </div>
 </nav>
-<main>
+<div class="app-layout" id="appLayout">
+<div id="wlSidebar" style="display:none;width:220px;flex-shrink:0;"></div>
+<main id="mainArea">
   <!-- PAGE: 個股分析 -->
   <div class="tab-page show" id="pageStock">
   <div class="status" id="status"><div class="dot"></div><span id="statusText"></span></div>
@@ -572,7 +602,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
   <div id="dashboard" style="display:none;flex-direction:column;gap:16px;">
     <div class="price-card">
       <div class="price-top">
-        <div><div class="price-ticker" id="hTicker">--</div><div class="price-name" id="hName">--</div></div>
+        <div><div class="price-ticker" id="hTicker">--</div><div class="price-name" id="hName" style="font-size:15px;color:var(--text);font-weight:500;margin-top:4px;">--</div></div>
         <div class="price-main">
           <div class="price-value" id="hPrice">--</div>
           <div class="price-change" id="hChange">--</div>
@@ -746,6 +776,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
   </div><!-- /pageETF -->
 
 </main>
+</div><!-- /app-layout -->
 
 <script>
 // =====================================================
@@ -985,7 +1016,9 @@ function renderSnap(ticker, s) {
   var chg = +(s.change_price || price-prev), chgP = +(s.change_rate || (prev?(chg/prev*100):0));
   var isUp = chg >= 0;
   document.getElementById('hTicker').textContent = ticker;
-  document.getElementById('hName').textContent = s.stock_name || ticker;
+  var snapName = s.stock_name || stockNameCache[ticker] || ticker;
+  document.getElementById('hName').textContent = snapName;
+  if (snapName !== ticker) stockNameCache[ticker] = snapName;
   var pe = document.getElementById('hPrice'); pe.textContent=fmt(price); pe.className='price-value '+(isUp?'up':'down');
   var ce = document.getElementById('hChange'); ce.textContent=(isUp?'▲':'▼')+' '+fmt(Math.abs(chg))+'（'+(isUp?'+':'')+fmt(Math.abs(chgP))+'%）'; ce.className='price-change '+(isUp?'up':'down');
   document.getElementById('hPrev').textContent = fmt(prev);
@@ -1000,7 +1033,9 @@ function renderDaily(ticker, d) {
   var price=+d.close, spread=+d.spread, prev=price-spread;
   var chgP=prev?(spread/prev*100):0, isUp=spread>=0;
   document.getElementById('hTicker').textContent = ticker;
-  document.getElementById('hName').textContent = d.stock_name||ticker;
+  var dailyName = d.stock_name || stockNameCache[ticker] || ticker;
+  document.getElementById('hName').textContent = dailyName;
+  if (dailyName !== ticker) stockNameCache[ticker] = dailyName;
   var pe=document.getElementById('hPrice'); pe.textContent=fmt(price); pe.className='price-value '+(isUp?'up':'down');
   var ce=document.getElementById('hChange'); ce.textContent=(isUp?'▲':'▼')+' '+fmt(Math.abs(spread))+'（'+(isUp?'+':'')+fmt(Math.abs(chgP))+'%）'; ce.className='price-change '+(isUp?'up':'down');
   document.getElementById('hPrev').textContent=fmt(prev);
@@ -1271,6 +1306,13 @@ function toggleFav(){
   else { var name=document.getElementById('hName').textContent; watchlist.unshift({id:currentTicker,name:name==='--'?currentTicker:name}); if(watchlist.length>30)watchlist.pop(); }
   saveWL(); updateFavBtn(currentTicker); renderWLDrawer();
 }
+function updateWLOpenBtn() {
+  var btn = document.getElementById('wlOpenBtn');
+  if (!btn) return;
+  btn.textContent = wlPinned ? '★ 自選（固定）' : '☆ 自選';
+  btn.style.borderColor = wlPinned ? 'var(--gold)' : '';
+  btn.style.color = wlPinned ? 'var(--gold)' : '';
+}
 function renderWLDrawer(){
   var list=document.getElementById('wlList');
   if(!watchlist.length){ list.innerHTML='<div class="wl-empty">尚無自選股<br>點擊「☆ 加入自選」加入</div>'; return; }
@@ -1284,8 +1326,55 @@ function renderWLDrawer(){
     btn.addEventListener('click',function(e){ e.stopPropagation(); watchlist=watchlist.filter(function(w){return w.id!==btn.dataset.remove;}); saveWL(); renderWLDrawer(); if(currentTicker===btn.dataset.remove)updateFavBtn(currentTicker); });
   });
 }
-function openWL(){ document.getElementById('wlDrawer').classList.add('open'); document.getElementById('wlOverlay').classList.add('show'); renderWLDrawer(); }
-function closeWL(){ document.getElementById('wlDrawer').classList.remove('open'); document.getElementById('wlOverlay').classList.remove('show'); }
+var wlPinned = localStorage.getItem('tw_wl_pinned') === '1';
+
+function applyWLPin() {
+  var drawer   = document.getElementById('wlDrawer');
+  var sidebar  = document.getElementById('wlSidebar');
+  var overlay  = document.getElementById('wlOverlay');
+  var pinBtn   = document.getElementById('wlPinBtn');
+  var mainArea = document.getElementById('mainArea');
+  if (wlPinned) {
+    // Move drawer into sidebar slot
+    sidebar.appendChild(drawer);
+    drawer.classList.add('pinned');
+    drawer.classList.remove('open');
+    sidebar.style.display = 'block';
+    overlay.classList.remove('show');
+    if (mainArea) mainArea.style.flex = '1';
+    if (pinBtn) { pinBtn.textContent = '📌 固定中'; pinBtn.classList.add('active'); }
+  } else {
+    // Move drawer back to body
+    document.body.insertBefore(drawer, document.body.firstChild);
+    drawer.classList.remove('pinned');
+    sidebar.style.display = 'none';
+    if (pinBtn) { pinBtn.textContent = '📌 固定'; pinBtn.classList.remove('active'); }
+  }
+}
+function toggleWLPin() {
+  wlPinned = !wlPinned;
+  localStorage.setItem('tw_wl_pinned', wlPinned ? '1' : '0'); updateWLOpenBtn();
+  if (wlPinned) {
+    // Open + pin
+    document.getElementById('wlOverlay').classList.remove('show');
+    applyWLPin();
+    renderWLDrawer();
+  } else {
+    applyWLPin();
+    document.getElementById('wlDrawer').classList.remove('open');
+  }
+}
+function openWL() {
+  if (wlPinned) { renderWLDrawer(); return; }
+  document.getElementById('wlDrawer').classList.add('open');
+  document.getElementById('wlOverlay').classList.add('show');
+  renderWLDrawer();
+}
+function closeWL() {
+  if (wlPinned) return; // can't close while pinned
+  document.getElementById('wlDrawer').classList.remove('open');
+  document.getElementById('wlOverlay').classList.remove('show');
+}
 
 // =====================================================
 // INIT — bind all events here, no inline onclick
@@ -1732,6 +1821,12 @@ function init() {
   if (wlCloseBtn) { wlCloseBtn.addEventListener('click', closeWL); }
   if (wlOverlay)  { wlOverlay.addEventListener('click', closeWL); }
   if (btnFav)     { btnFav.addEventListener('click', toggleFav); }
+  var wlPinBtnEl = document.getElementById('wlPinBtn');
+  if (wlPinBtnEl) { wlPinBtnEl.addEventListener('click', toggleWLPin); }
+  // Restore pinned state on load
+  applyWLPin();
+  updateWLOpenBtn();
+  if (wlPinned) renderWLDrawer();
 
   document.querySelectorAll('.chip[data-ticker]').forEach(function(el) {
     el.addEventListener('click', function() { load(el.dataset.ticker); });
