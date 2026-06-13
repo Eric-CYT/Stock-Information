@@ -548,6 +548,29 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
   .cmp-input-row input,
   #etfInput,#etfCmpInput{font-size:max(16px,1em);}
 }
+
+/* ===== VOLUME ANALYSIS ===== */
+.vol-controls{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.vol-quick-btns{display:flex;flex-wrap:wrap;gap:5px;}
+.vol-qbtn{padding:4px 11px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:12px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .15s;}
+.vol-qbtn:hover{border-color:var(--accent);color:var(--accent);}
+.vol-qbtn.active{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.1);}
+.vol-custom-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 0;}
+.vol-custom-row input[type="date"]{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:5px 9px;color:var(--text);font-size:13px;outline:none;transition:border-color .2s;min-width:0;font-family:inherit;-webkit-appearance:none;}
+.vol-custom-row input[type="date"]:focus{border-color:var(--accent);}
+.vol-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.vol-stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;}
+.vol-stat-label{font-size:10px;color:var(--text3);margin-bottom:4px;letter-spacing:.3px;}
+.vol-stat-value{font-size:17px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.vol-loading{font-size:12px;color:var(--text3);text-align:center;padding:20px;display:none;}
+.vol-note{font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px;}
+.vol-inst-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin:18px 0 8px;}
+.vol-inst-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--gold);display:block;}
+@media(max-width:640px){
+  .vol-summary{grid-template-columns:repeat(2,1fr);}
+  .vol-custom-row{gap:5px;}
+  .vol-custom-row input[type="date"]{font-size:12px;}
+}
 </style>
 </head>
 <body>
@@ -629,6 +652,61 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
       <div class="metric-card"><div class="metric-label">本益比（P/E）</div><div class="metric-value" id="mPE">--</div><div class="metric-sub">最新</div></div>
       <div class="metric-card"><div class="metric-label">股價淨值比（P/B）</div><div class="metric-value" id="mPB">--</div><div class="metric-sub">最新</div></div>
       <div class="metric-card"><div class="metric-label">殖利率</div><div class="metric-value" id="mDY" style="color:var(--gold)">--</div><div class="metric-sub">年化</div></div>
+    </div>
+
+    <div class="section-title">成交量分析</div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">每日成交量（買入 / 賣出）</div>
+        <span class="source-note">FinMind · 日頻</span>
+      </div>
+      <div class="panel-body">
+        <!-- Date range controls -->
+        <div class="vol-controls">
+          <div class="vol-quick-btns">
+            <button class="vol-qbtn active" data-days="30">近30天</button>
+            <button class="vol-qbtn" data-days="60">近60天</button>
+            <button class="vol-qbtn" data-days="90">近90天</button>
+            <button class="vol-qbtn" data-days="180">近半年</button>
+            <button class="vol-qbtn" data-days="365">近1年</button>
+            <button class="vol-qbtn" data-days="0">自訂日期 ▾</button>
+          </div>
+          <div class="vol-custom-row" id="volCustomRow" style="display:none;">
+            <input type="date" id="volStartDate">
+            <span style="color:var(--text3);font-size:13px;">～</span>
+            <input type="date" id="volEndDate">
+            <button class="btn-primary" id="volCustomBtn" style="font-size:12px;padding:5px 12px;">查詢</button>
+          </div>
+        </div>
+        <!-- Loading indicator -->
+        <div class="vol-loading" id="volLoading">⟳ 載入成交量資料中...</div>
+        <!-- Summary stats -->
+        <div class="vol-summary" id="volSummary" style="display:none;">
+          <div class="vol-stat-card">
+            <div class="vol-stat-label">區間總成交量（張）</div>
+            <div class="vol-stat-value" id="vsTotal">--</div>
+          </div>
+          <div class="vol-stat-card">
+            <div class="vol-stat-label">日均成交量（張）</div>
+            <div class="vol-stat-value" id="vsAvg">--</div>
+          </div>
+          <div class="vol-stat-card">
+            <div class="vol-stat-label">買入成交量（張）</div>
+            <div class="vol-stat-value" id="vsBuy" style="color:var(--up)">--</div>
+          </div>
+          <div class="vol-stat-card">
+            <div class="vol-stat-label">賣出成交量（張）</div>
+            <div class="vol-stat-value" id="vsSell" style="color:var(--down)">--</div>
+          </div>
+        </div>
+        <!-- Volume chart -->
+        <div class="chart-wrap" style="height:240px;" id="volChartWrap"><canvas id="chartVol"></canvas></div>
+        <div class="vol-note">* 買入成交量（綠）= 收盤上漲日，賣出成交量（紅）= 收盤下跌日；以收盤漲跌判斷當日主導方</div>
+        <!-- Institutional buy/sell -->
+        <div class="vol-inst-title">三大法人買賣超（外資 ＋ 投信 ＋ 自營商）</div>
+        <div class="chart-wrap" style="height:210px;" id="instChartWrap"><canvas id="chartInst"></canvas></div>
+      </div>
     </div>
 
     <div class="section-title">財務圖表</div>
@@ -1035,6 +1113,9 @@ function load(ticker) {
 
     setStatus('✓ ' + ticker + ' 載入完成', 'ok');
     setTimeout(hideStatus, 3000);
+
+    // Load volume data independently (custom date range)
+    loadVolume(ticker);
   }).catch(function(e) {
     if (myId !== reqId) return;
     setStatus('✗ ' + e.message, 'err');
@@ -1061,6 +1142,14 @@ function resetUI(ticker) {
   ['chartRev','chartMargin','chartFCF','chartCapex','chartDebt','chartDebtRatio','chartDiv','chartEPS'].forEach(function(id) {
     if (charts[id]) { charts[id].destroy(); delete charts[id]; }
   });
+  // Reset volume charts
+  ['chartVol','chartInst'].forEach(function(id) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  });
+  var volSum = document.getElementById('volSummary');
+  if (volSum) volSum.style.display = 'none';
+  var volLoad = document.getElementById('volLoading');
+  if (volLoad) volLoad.style.display = 'none';
 }
 
 // =====================================================
@@ -1344,6 +1433,288 @@ function renderAIScore(ticker, perD, finD, cfD, bsD, revD) {
     +(pe!=null?'本益比 '+fmt(pe)+'x。':'')
     +(total>=7.5?'財務體質優良。':total>=5?'財務表現穩健。':'部分指標偏弱，請注意風險。');
   document.getElementById('aiComment').textContent=comment||'數據不足';
+}
+
+// =====================================================
+// VOLUME ANALYSIS
+// =====================================================
+var volState = { days: 30, start: null, end: null };
+var volReqId = 0;
+
+function getVolDates() {
+  if (volState.start && volState.end) {
+    return { start: volState.start, end: volState.end };
+  }
+  var end = new Date();
+  var start = new Date();
+  start.setDate(start.getDate() - (volState.days || 30));
+  return {
+    start: start.toISOString().slice(0,10),
+    end:   end.toISOString().slice(0,10)
+  };
+}
+
+function loadVolume(ticker) {
+  if (!ticker) return;
+  var myId = ++volReqId;
+  var dates = getVolDates();
+  var loadEl = document.getElementById('volLoading');
+  if (loadEl) { loadEl.style.display = 'block'; }
+  var sumEl = document.getElementById('volSummary');
+  if (sumEl) { sumEl.style.display = 'none'; }
+
+  Promise.allSettled([
+    fetchJSON(FM + '?dataset=TaiwanStockPrice&data_id=' + ticker
+      + '&start_date=' + dates.start + '&end_date=' + dates.end, 14000),
+    fetchJSON(FM + '?dataset=TaiwanStockInstitutionalInvestors&data_id=' + ticker
+      + '&start_date=' + dates.start + '&end_date=' + dates.end, 14000)
+  ]).then(function(results) {
+    if (myId !== volReqId) return;
+    if (loadEl) { loadEl.style.display = 'none'; }
+    var priceD = results[0].status === 'fulfilled' ? (results[0].value.data || []) : [];
+    var instD  = results[1].status === 'fulfilled' ? (results[1].value.data || []) : [];
+    if (priceD.length) {
+      renderVolumeChart(priceD);
+    } else {
+      if (charts['chartVol']) { charts['chartVol'].destroy(); delete charts['chartVol']; }
+    }
+    if (instD.length) {
+      renderInstChart(instD);
+    } else {
+      if (charts['chartInst']) { charts['chartInst'].destroy(); delete charts['chartInst']; }
+    }
+  }).catch(function() {
+    if (myId !== volReqId) return;
+    if (loadEl) { loadEl.style.display = 'none'; }
+  });
+}
+
+function renderVolumeChart(rows) {
+  rows.sort(function(a,b){ return a.date.localeCompare(b.date); });
+
+  var labels   = rows.map(function(r){ return r.date.slice(5); });
+  var buyVol   = [];
+  var sellVol  = [];
+  var totalBuy = 0, totalSell = 0;
+
+  rows.forEach(function(r) {
+    var volStr = String(r.Trading_Volume || r.trading_volume || '0').replace(/,/g,'');
+    var vol = Math.round(+volStr / 1000); // 股 → 張
+    var spread = +r.spread;
+    if (spread >= 0) {
+      buyVol.push(vol);
+      sellVol.push(null);
+      totalBuy += vol;
+    } else {
+      buyVol.push(null);
+      sellVol.push(vol);
+      totalSell += vol;
+    }
+  });
+
+  var total = totalBuy + totalSell;
+  var dayCount = rows.length || 1;
+  var avg = Math.round(total / dayCount);
+
+  var sumEl = document.getElementById('volSummary');
+  if (sumEl) { sumEl.style.display = 'grid'; }
+  var el = function(id) { return document.getElementById(id); };
+  if (el('vsTotal')) el('vsTotal').textContent = total.toLocaleString('zh-TW');
+  if (el('vsAvg'))   el('vsAvg').textContent   = avg.toLocaleString('zh-TW');
+  if (el('vsBuy'))   el('vsBuy').textContent   = totalBuy.toLocaleString('zh-TW');
+  if (el('vsSell'))  el('vsSell').textContent  = totalSell.toLocaleString('zh-TW');
+
+  function tickFmt(v) {
+    if (v == null) return '';
+    var abs = Math.abs(v);
+    if (abs >= 1e6) return (v/1e6).toFixed(1) + 'M';
+    if (abs >= 1e3) return (v/1e3).toFixed(0) + 'K';
+    return String(v);
+  }
+
+  mkChart('chartVol', {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: '買入成交量（張）',
+          data: buyVol,
+          backgroundColor: 'rgba(34,197,94,.42)',
+          borderColor: '#22c55e',
+          borderWidth: 1,
+          borderRadius: 2,
+          order: 1
+        },
+        {
+          label: '賣出成交量（張）',
+          data: sellVol,
+          backgroundColor: 'rgba(244,63,94,.42)',
+          borderColor: '#f43f5e',
+          borderWidth: 1,
+          borderRadius: 2,
+          order: 1
+        }
+      ]
+    },
+    options: Object.assign({}, CD, {
+      plugins: Object.assign({}, CD.plugins, {
+        tooltip: Object.assign({}, CD.plugins.tooltip, {
+          callbacks: {
+            label: function(ctx) {
+              var v = ctx.parsed.y;
+              if (v == null || isNaN(v)) return null;
+              return ctx.dataset.label + ': ' + Math.abs(v).toLocaleString('zh-TW') + ' 張';
+            }
+          }
+        })
+      }),
+      scales: {
+        x: CD.scales.x,
+        y: Object.assign({}, CD.scales.y, {
+          stacked: false,
+          ticks: { color: '#4a5f7a', callback: tickFmt }
+        })
+      }
+    })
+  });
+}
+
+function renderInstChart(rows) {
+  // Group by date, sum buy/sell across 外資, 投信, 自營商
+  var byDate = {};
+  rows.forEach(function(r) {
+    var d = r.date;
+    if (!byDate[d]) byDate[d] = { buy: 0, sell: 0 };
+    byDate[d].buy  += Math.abs(+(r.buy  || 0));
+    byDate[d].sell += Math.abs(+(r.sell || 0));
+  });
+
+  var dates   = Object.keys(byDate).sort();
+  var buyArr  = dates.map(function(d){ return byDate[d].buy; });
+  var sellArr = dates.map(function(d){ return byDate[d].sell; });
+  var netArr  = dates.map(function(d){ return byDate[d].buy - byDate[d].sell; });
+
+  // Auto-scale: detect if values look like NT$ amounts (very large) or lots
+  var maxVal = Math.max.apply(null, buyArr.concat(sellArr).filter(Boolean));
+  var scale = 1, unit = '';
+  if (maxVal >= 1e8)      { scale = 1e8; unit = '億'; }
+  else if (maxVal >= 1e6) { scale = 1e6; unit = '百萬'; }
+  else if (maxVal >= 1e3) { scale = 1e3; unit = '千'; }
+  else                    { scale = 1;   unit = ''; }
+
+  var buyScaled  = buyArr.map(function(v){  return v / scale; });
+  var sellScaled = sellArr.map(function(v){ return v / scale; });
+  var netScaled  = netArr.map(function(v){  return v / scale; });
+
+  mkChart('chartInst', {
+    type: 'bar',
+    data: {
+      labels: dates.map(function(d){ return d.slice(5); }),
+      datasets: [
+        {
+          label: '買入（' + (unit||'') + '）',
+          data: buyScaled,
+          backgroundColor: 'rgba(34,197,94,.32)',
+          borderColor: '#22c55e',
+          borderWidth: 1,
+          borderRadius: 2,
+          order: 2
+        },
+        {
+          label: '賣出（' + (unit||'') + '）',
+          data: sellScaled.map(function(v){ return -v; }),
+          backgroundColor: 'rgba(244,63,94,.32)',
+          borderColor: '#f43f5e',
+          borderWidth: 1,
+          borderRadius: 2,
+          order: 2
+        },
+        {
+          type: 'line',
+          label: '淨買超（' + (unit||'') + '）',
+          data: netScaled,
+          borderColor: '#f59e0b',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 2,
+          tension: 0.3,
+          order: 1
+        }
+      ]
+    },
+    options: Object.assign({}, CD, {
+      plugins: Object.assign({}, CD.plugins, {
+        tooltip: Object.assign({}, CD.plugins.tooltip, {
+          callbacks: {
+            label: function(ctx) {
+              var v = ctx.parsed.y;
+              if (v == null || isNaN(v)) return null;
+              return ctx.dataset.label + ': ' + (v >= 0 ? '+' : '') + Math.abs(v).toFixed(1) + (unit ? ' ' + unit : '');
+            }
+          }
+        })
+      }),
+      scales: {
+        x: CD.scales.x,
+        y: Object.assign({}, CD.scales.y, {
+          ticks: {
+            color: '#4a5f7a',
+            callback: function(v) {
+              if (v == null) return '';
+              var abs = Math.abs(v);
+              return (v >= 0 ? '' : '-') + (abs >= 1000 ? (abs/1000).toFixed(0) + 'K' : abs.toFixed(0));
+            }
+          }
+        })
+      }
+    })
+  });
+}
+
+function initVolControls() {
+  // Set default date values in inputs
+  var today = new Date();
+  var def30 = new Date();
+  def30.setDate(def30.getDate() - 30);
+  var eInput = document.getElementById('volEndDate');
+  var sInput = document.getElementById('volStartDate');
+  if (eInput) eInput.value = today.toISOString().slice(0,10);
+  if (sInput) sInput.value = def30.toISOString().slice(0,10);
+
+  // Quick date buttons
+  document.querySelectorAll('.vol-qbtn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.vol-qbtn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var days = +btn.dataset.days;
+      var customRow = document.getElementById('volCustomRow');
+      if (days === 0) {
+        if (customRow) customRow.style.display = 'flex';
+      } else {
+        if (customRow) customRow.style.display = 'none';
+        volState.days  = days;
+        volState.start = null;
+        volState.end   = null;
+        if (currentTicker) loadVolume(currentTicker);
+      }
+    });
+  });
+
+  // Custom date query button
+  var customBtn = document.getElementById('volCustomBtn');
+  if (customBtn) {
+    customBtn.addEventListener('click', function() {
+      var s = (document.getElementById('volStartDate') || {}).value;
+      var e = (document.getElementById('volEndDate')   || {}).value;
+      if (!s || !e) return;
+      if (s > e) { var tmp=s; s=e; e=tmp; }
+      volState.start = s;
+      volState.end   = e;
+      volState.days  = 0;
+      if (currentTicker) loadVolume(currentTicker);
+    });
+  }
 }
 
 // =====================================================
@@ -1970,6 +2341,9 @@ function init() {
 
   // Pre-load stock name table in background
   loadStockInfoTable();
+
+  // Initialize volume analysis controls
+  initVolControls();
 
   renderWLDrawer();
 }
