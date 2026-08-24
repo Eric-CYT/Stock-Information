@@ -549,6 +549,42 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
   #etfInput,#etfCmpInput{font-size:max(16px,1em);}
 }
 
+/* ===== INDEX & FUTURES PAGE ===== */
+.idx-header-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.idx-status{font-size:12px;color:var(--text3);}
+.idx-signals{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+.idx-signal-item{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;transition:border-color .2s;}
+.idx-signal-item.signal-on{border-color:rgba(34,197,94,.5);}
+.idx-signal-item.signal-off{border-color:var(--border);}
+.idx-lamp{width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:2px;transition:all .4s;}
+.idx-lamp.green{background:var(--up);box-shadow:0 0 6px var(--up),0 0 18px rgba(34,197,94,.45);}
+.idx-lamp.red{background:var(--down);box-shadow:0 0 6px var(--down),0 0 12px rgba(244,63,94,.3);}
+.idx-lamp.off{background:var(--text3);opacity:.45;}
+.idx-sig-name{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:3px;}
+.idx-sig-status{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;margin-bottom:4px;}
+.idx-sig-status.on{background:rgba(34,197,94,.15);color:var(--up);border:1px solid rgba(34,197,94,.3);}
+.idx-sig-status.off{background:var(--bg2);color:var(--text3);border:1px solid var(--border);}
+.idx-sig-val{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.idx-quick-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.idx-qs{background:var(--bg3);border-radius:6px;padding:8px 10px;}
+.idx-qs-label{font-size:10px;color:var(--text3);margin-bottom:3px;}
+.idx-qs-val{font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);}
+.idx-table{width:100%;border-collapse:collapse;font-size:12px;min-width:560px;}
+.idx-table th{padding:8px 10px;color:var(--text3);font-size:10px;border-bottom:1px solid var(--border);font-weight:500;text-align:right;white-space:nowrap;}
+.idx-table th:first-child{text-align:left;}
+.idx-table td{padding:7px 10px;border-bottom:1px solid rgba(30,45,71,.3);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;white-space:nowrap;}
+.idx-table td:first-child{text-align:left;color:var(--text2);}
+.idx-table tr:hover td{background:rgba(56,189,248,.04);}
+.idx-table tr:last-child td{border-bottom:none;}
+.idx-table tr.idx-latest td{background:rgba(56,189,248,.06);font-weight:600;}
+.idx-table tr.idx-latest td:first-child{color:var(--accent);}
+.idx-sig-wrap{display:inline-flex;align-items:center;gap:3px;font-size:12px;}
+@keyframes lamp-pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.idx-lamp.green{animation:lamp-pulse 2.2s ease-in-out infinite;}
+@media(max-width:640px){
+  .idx-quick-stats{grid-template-columns:repeat(2,1fr);}
+}
+
 /* ===== VOLUME ANALYSIS ===== */
 .vol-controls{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
 .vol-quick-btns{display:flex;flex-wrap:wrap;gap:5px;}
@@ -606,6 +642,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
     <button class="tab-btn active" data-target="pageStock">個股分析</button>
     <button class="tab-btn" data-target="pageCompare">多股比較</button>
     <button class="tab-btn" data-target="pageETF">ETF 分析</button>
+    <button class="tab-btn" data-target="pageIndex">📈 指數期貨</button>
   </div>
 </nav>
 <div class="app-layout" id="appLayout">
@@ -858,6 +895,156 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
       </div>
     </div>
   </div><!-- /pageETF -->
+
+  <!-- PAGE: 指數期貨 -->
+  <div class="tab-page" id="pageIndex">
+
+    <!-- Header row: status + refresh -->
+    <div class="idx-header-row">
+      <span class="idx-status" id="idxStatus">切換至此分頁自動載入資料</span>
+      <button class="btn-primary" id="idxRefreshBtn" style="font-size:13px;padding:7px 16px;">⟳ 重新整理</button>
+    </div>
+
+    <!-- Signal panels (2-column) -->
+    <div class="grid2">
+
+      <!-- IX0001 -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">IX0001 加權指數</div>
+          <span class="source-note" id="ixLastDate">--</span>
+        </div>
+        <div class="panel-body">
+          <div class="idx-signals">
+            <!-- Signal 1: 10MA翻揚 -->
+            <div class="idx-signal-item signal-off" id="ixSig10MA">
+              <div class="idx-lamp off"></div>
+              <div style="flex:1">
+                <div class="idx-sig-name">10日均線翻揚</div>
+                <span class="idx-sig-status off" id="ixSig10MAStatus">待載入</span>
+                <div class="idx-sig-val" id="ix10MAVal">--</div>
+              </div>
+            </div>
+            <!-- Signal 2: 收盤站上11MA -->
+            <div class="idx-signal-item signal-off" id="ixSig11MA">
+              <div class="idx-lamp off"></div>
+              <div style="flex:1">
+                <div class="idx-sig-name">收盤站上 11 日均線</div>
+                <span class="idx-sig-status off" id="ixSig11MAStatus">待載入</span>
+                <div class="idx-sig-val" id="ix11MAVal">--</div>
+              </div>
+            </div>
+          </div>
+          <!-- Quick stats -->
+          <div class="idx-quick-stats">
+            <div class="idx-qs"><div class="idx-qs-label">最新收盤</div><div class="idx-qs-val" id="ixClose">--</div></div>
+            <div class="idx-qs"><div class="idx-qs-label">漲跌點</div><div class="idx-qs-val" id="ixChange">--</div></div>
+            <div class="idx-qs"><div class="idx-qs-label">3日均</div><div class="idx-qs-val" id="ix3MA" style="color:var(--accent)">--</div></div>
+            <div class="idx-qs"><div class="idx-qs-label">10日均</div><div class="idx-qs-val" id="ix10MA" style="color:var(--gold)">--</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TXF -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">TXF 台指期（近月）</div>
+          <span class="source-note" id="txLastDate">--</span>
+        </div>
+        <div class="panel-body">
+          <div class="idx-signals">
+            <!-- Signal 1: 10MA翻揚 -->
+            <div class="idx-signal-item signal-off" id="txSig10MA">
+              <div class="idx-lamp off"></div>
+              <div style="flex:1">
+                <div class="idx-sig-name">10日均線翻揚</div>
+                <span class="idx-sig-status off" id="txSig10MAStatus">待載入</span>
+                <div class="idx-sig-val" id="tx10MAVal">--</div>
+              </div>
+            </div>
+            <!-- Signal 2: 收盤站上11MA -->
+            <div class="idx-signal-item signal-off" id="txSig11MA">
+              <div class="idx-lamp off"></div>
+              <div style="flex:1">
+                <div class="idx-sig-name">收盤站上 11 日均線</div>
+                <span class="idx-sig-status off" id="txSig11MAStatus">待載入</span>
+                <div class="idx-sig-val" id="tx11MAVal">--</div>
+              </div>
+            </div>
+          </div>
+          <!-- Quick stats -->
+          <div class="idx-quick-stats">
+            <div class="idx-qs"><div class="idx-qs-label">最新收盤</div><div class="idx-qs-val" id="txClose">--</div></div>
+            <div class="idx-qs"><div class="idx-qs-label">漲跌點</div><div class="idx-qs-val" id="txChange">--</div></div>
+            <div class="idx-qs"><div class="idx-qs-label">3日均</div><div class="idx-qs-val" id="tx3MA" style="color:var(--accent)">--</div></div>
+            <div class="idx-qs"><div class="idx-qs-label">10日均</div><div class="idx-qs-val" id="tx10MA" style="color:var(--gold)">--</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /grid2 -->
+
+    <!-- IX0001 Table -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">IX0001 加權指數　每日價格紀錄</div>
+        <span class="source-note">FinMind · 近60日</span>
+      </div>
+      <div class="panel-body" style="padding:0;">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table class="idx-table">
+            <thead>
+              <tr>
+                <th style="text-align:left;">日期</th>
+                <th>開盤</th>
+                <th>最高</th>
+                <th>最低</th>
+                <th>收盤</th>
+                <th style="color:var(--accent)">3MA</th>
+                <th style="color:var(--gold)">10MA</th>
+                <th>10MA趨勢</th>
+                <th>收&gt;11MA</th>
+              </tr>
+            </thead>
+            <tbody id="ixTable">
+              <tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">請點擊「⟳ 重新整理」載入資料</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TXF Table -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">TXF 台指期　每日價格紀錄</div>
+        <span class="source-note">FinMind · TX 近月 · 近60日</span>
+      </div>
+      <div class="panel-body" style="padding:0;">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table class="idx-table">
+            <thead>
+              <tr>
+                <th style="text-align:left;">日期</th>
+                <th>開盤</th>
+                <th>最高</th>
+                <th>最低</th>
+                <th>收盤</th>
+                <th style="color:var(--accent)">3MA</th>
+                <th style="color:var(--gold)">10MA</th>
+                <th>10MA趨勢</th>
+                <th>收&gt;11MA</th>
+              </tr>
+            </thead>
+            <tbody id="txTable">
+              <tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">請點擊「⟳ 重新整理」載入資料</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pageIndex -->
 
 </main>
 </div><!-- /app-layout -->
@@ -1718,6 +1905,265 @@ function initVolControls() {
 }
 
 // =====================================================
+// INDEX & FUTURES PAGE  (IX0001 + TXF)
+// =====================================================
+var idxLoaded = false;
+
+function calcMA(arr, period) {
+  return arr.map(function(_, i) {
+    if (i < period - 1) return null;
+    var sum = 0;
+    for (var j = i - period + 1; j <= i; j++) sum += arr[j];
+    return +(sum / period).toFixed(2);
+  });
+}
+
+// Enrich raw rows with MA3 / MA10 / MA11 and signal flags
+function enrichRows(rows) {
+  var closes = rows.map(function(r) { return r.close; });
+  var ma3  = calcMA(closes, 3);
+  var ma10 = calcMA(closes, 10);
+  var ma11 = calcMA(closes, 11);
+  return rows.map(function(r, i) {
+    var prevMA10 = i > 0 ? ma10[i - 1] : null;
+    var trend = (ma10[i] != null && prevMA10 != null)
+      ? (ma10[i] > prevMA10 ? 'up' : ma10[i] < prevMA10 ? 'down' : 'flat') : null;
+    var abv = (closes[i] != null && ma11[i] != null) ? closes[i] > ma11[i] : null;
+    return {
+      date: r.date, open: r.open, high: r.high, low: r.low,
+      close: r.close, spread: r.spread,
+      ma3:  ma3[i], ma10: ma10[i], ma11: ma11[i],
+      ma10Trend: trend, closeAbove11: abv
+    };
+  });
+}
+
+// Process TaiwanStockPrice rows → normalize field names
+function normalizeIX(rows) {
+  return rows.map(function(r) {
+    return {
+      date:   r.date,
+      open:   +(r.open  || 0),
+      high:   +(r.max   || r.high || 0),
+      low:    +(r.min   || r.low  || 0),
+      close:  +(r.close || 0),
+      spread: +(r.spread || 0)
+    };
+  });
+}
+
+// Process TaiwanFuturesDaily rows → pick front-month per date
+function normalizeTXF(allRows) {
+  var byDate = {};
+  allRows.forEach(function(r) {
+    if (!byDate[r.date]) byDate[r.date] = [];
+    byDate[r.date].push(r);
+  });
+  return Object.keys(byDate).sort().map(function(d) {
+    var contracts = byDate[d];
+    var ym = d.replace(/-/g,'').slice(0, 6);
+    var front = contracts.filter(function(c) {
+      return String(c.contract_date) >= ym;
+    }).sort(function(a, b) {
+      return String(a.contract_date).localeCompare(String(b.contract_date));
+    });
+    if (!front.length) {
+      front = contracts.sort(function(a, b) {
+        return String(b.contract_date).localeCompare(String(a.contract_date));
+      });
+    }
+    var r = front[0];
+    return {
+      date:    r.date,
+      open:    +(r.open  || 0),
+      high:    +(r.max   || r.high  || 0),
+      low:     +(r.min   || r.low   || 0),
+      close:   +(r.close || 0),
+      spread:  +(r.spread || 0),
+      contract: r.contract_date
+    };
+  });
+}
+
+function fmtIdx(n) {
+  if (n == null || isNaN(+n)) return '--';
+  return (+n).toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderIdxTable(enriched, tbodyId) {
+  var tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  if (!enriched.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">無資料</td></tr>';
+    return;
+  }
+  var rows = enriched.slice().reverse(); // newest first
+  tbody.innerHTML = rows.map(function(r, i) {
+    var isUp  = r.spread >= 0;
+    var trendCell = r.ma10Trend === 'up'
+      ? '<span style="color:var(--up);font-size:14px">▲</span>'
+      : r.ma10Trend === 'down'
+      ? '<span style="color:var(--down);font-size:14px">▼</span>'
+      : r.ma10Trend === 'flat'
+      ? '<span style="color:var(--text3)">—</span>'
+      : '<span style="color:var(--text3)">—</span>';
+    var abvCell = r.closeAbove11 === true
+      ? '<span class="idx-sig-wrap" style="color:var(--up)">✓ 上方</span>'
+      : r.closeAbove11 === false
+      ? '<span class="idx-sig-wrap" style="color:var(--down)">✗ 下方</span>'
+      : '<span style="color:var(--text3)">--</span>';
+    var trClass = i === 0 ? ' class="idx-latest"' : '';
+    return '<tr' + trClass + '>'
+      + '<td>' + r.date.slice(5) + '</td>'
+      + '<td>' + fmtIdx(r.open) + '</td>'
+      + '<td style="color:var(--up)">' + fmtIdx(r.high) + '</td>'
+      + '<td style="color:var(--down)">' + fmtIdx(r.low) + '</td>'
+      + '<td style="color:' + (isUp ? 'var(--up)' : 'var(--down)') + ';font-weight:700">'
+        + fmtIdx(r.close)
+        + ' <span style="font-size:10px">' + (isUp ? '▲' : '▼') + '</span></td>'
+      + '<td style="color:var(--accent)">' + fmtIdx(r.ma3) + '</td>'
+      + '<td style="color:var(--gold)">' + fmtIdx(r.ma10) + '</td>'
+      + '<td style="text-align:center">' + trendCell + '</td>'
+      + '<td style="text-align:center">' + abvCell + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function updateIdxSignals(enriched, prefix) {
+  if (!enriched.length) return;
+  var latest = enriched[enriched.length - 1];
+  var prev   = enriched.length >= 2 ? enriched[enriched.length - 2] : null;
+
+  // ── Signal 1: 10MA翻揚 ──
+  var is10MAUp = latest.ma10Trend === 'up';
+  var sig10El = document.getElementById(prefix + 'Sig10MA');
+  var stat10El = document.getElementById(prefix + 'Sig10MAStatus');
+  var val10El  = document.getElementById(prefix + '10MAVal');
+  if (sig10El) {
+    sig10El.className = 'idx-signal-item ' + (is10MAUp ? 'signal-on' : 'signal-off');
+    var lamp10 = sig10El.querySelector('.idx-lamp');
+    if (lamp10) lamp10.className = 'idx-lamp ' + (is10MAUp ? 'green' : 'off');
+  }
+  if (stat10El) {
+    stat10El.textContent = is10MAUp ? '🟢 翻揚啟動' : '⚫ 尚未翻揚';
+    stat10El.className = 'idx-sig-status ' + (is10MAUp ? 'on' : 'off');
+  }
+  if (val10El) {
+    var t10 = latest.ma10 != null ? fmtIdx(latest.ma10) : '--';
+    var p10 = (prev && prev.ma10 != null) ? fmtIdx(prev.ma10) : '--';
+    val10El.textContent = '今10MA: ' + t10 + '  前日: ' + p10;
+  }
+
+  // ── Signal 2: 收盤站上11MA ──
+  var isAbove11 = latest.closeAbove11 === true;
+  var sig11El  = document.getElementById(prefix + 'Sig11MA');
+  var stat11El = document.getElementById(prefix + 'Sig11MAStatus');
+  var val11El  = document.getElementById(prefix + '11MAVal');
+  if (sig11El) {
+    sig11El.className = 'idx-signal-item ' + (isAbove11 ? 'signal-on' : 'signal-off');
+    var lamp11 = sig11El.querySelector('.idx-lamp');
+    if (lamp11) lamp11.className = 'idx-lamp ' + (isAbove11 ? 'green' : 'off');
+  }
+  if (stat11El) {
+    stat11El.textContent = isAbove11 ? '🟢 站上11MA' : '⚫ 11MA下方';
+    stat11El.className = 'idx-sig-status ' + (isAbove11 ? 'on' : 'off');
+  }
+  if (val11El) {
+    var c  = latest.close != null ? fmtIdx(latest.close) : '--';
+    var m11 = latest.ma11 != null ? fmtIdx(latest.ma11) : '--';
+    val11El.textContent = '收盤: ' + c + '  11MA: ' + m11;
+  }
+
+  // ── Quick stats ──
+  var closeEl  = document.getElementById(prefix + 'Close');
+  var changeEl = document.getElementById(prefix + 'Change');
+  var ma3El    = document.getElementById(prefix + '3MA');
+  var ma10El   = document.getElementById(prefix + '10MA');
+  if (closeEl)  closeEl.textContent  = latest.close != null ? latest.close.toLocaleString('zh-TW') : '--';
+  if (changeEl) {
+    var chg  = latest.spread || 0;
+    var isUp = chg >= 0;
+    changeEl.textContent  = (isUp ? '+' : '') + fmtIdx(chg);
+    changeEl.style.color  = isUp ? 'var(--up)' : 'var(--down)';
+  }
+  if (ma3El)  ma3El.textContent  = fmtIdx(latest.ma3);
+  if (ma10El) ma10El.textContent = fmtIdx(latest.ma10);
+
+  // Last date badge
+  var dateEl = document.getElementById(prefix === 'ix' ? 'ixLastDate' : 'txLastDate');
+  if (dateEl) dateEl.textContent = latest.date;
+}
+
+function loadIndexData() {
+  var statusEl   = document.getElementById('idxStatus');
+  var refreshBtn = document.getElementById('idxRefreshBtn');
+  if (statusEl)   statusEl.textContent = '⟳ 載入 IX0001 / TXF 資料中...';
+  if (refreshBtn) { refreshBtn.textContent = '⟳ 載入中…'; refreshBtn.disabled = true; }
+
+  var startDate = daysAgo(90); // need 90 days to have enough for MA calculations
+
+  Promise.allSettled([
+    // IX0001: Taiwan Weighted Stock Index
+    fetchJSON(FM + '?dataset=TaiwanStockPrice&data_id=IX0001&start_date=' + startDate, 16000),
+    // TXF: Taiwan Stock Index Futures (TX series, all contract months)
+    fetchJSON(FM + '?dataset=TaiwanFuturesDaily&data_id=TX&start_date=' + startDate, 16000)
+  ]).then(function(results) {
+    if (refreshBtn) { refreshBtn.textContent = '⟳ 重新整理'; refreshBtn.disabled = false; }
+
+    var ixRaw = results[0].status === 'fulfilled' ? (results[0].value.data || []) : [];
+    var txRaw = results[1].status === 'fulfilled' ? (results[1].value.data || []) : [];
+
+    var anyOk = false;
+
+    // ── IX0001 ──
+    if (ixRaw.length) {
+      var ixNorm = normalizeIX(ixRaw).filter(function(r) { return r.close > 0; });
+      ixNorm.sort(function(a, b) { return a.date.localeCompare(b.date); });
+      var ixEnriched = enrichRows(ixNorm);
+      renderIdxTable(ixEnriched, 'ixTable');
+      updateIdxSignals(ixEnriched, 'ix');
+      anyOk = true;
+    } else {
+      var ixTb = document.getElementById('ixTable');
+      if (ixTb) ixTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">IX0001 資料暫無法取得（FinMind 限速或代號有誤）</td></tr>';
+    }
+
+    // ── TXF ──
+    if (txRaw.length) {
+      var txNorm = normalizeTXF(txRaw).filter(function(r) { return r.close > 0; });
+      txNorm.sort(function(a, b) { return a.date.localeCompare(b.date); });
+      var txEnriched = enrichRows(txNorm);
+      renderIdxTable(txEnriched, 'txTable');
+      updateIdxSignals(txEnriched, 'tx');
+      anyOk = true;
+    } else {
+      var txTb = document.getElementById('txTable');
+      if (txTb) txTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">TXF 期貨資料暫無法取得</td></tr>';
+    }
+
+    idxLoaded = true;
+    var now = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    if (statusEl) statusEl.textContent = anyOk ? '✓ 更新完成 ' + now : '⚠ 資料載入失敗，請稍後重試';
+  }).catch(function(e) {
+    if (refreshBtn) { refreshBtn.textContent = '⟳ 重新整理'; refreshBtn.disabled = false; }
+    if (statusEl)   statusEl.textContent = '✗ 錯誤: ' + e.message;
+  });
+}
+
+function initIndexPage() {
+  var refreshBtn = document.getElementById('idxRefreshBtn');
+  if (refreshBtn) refreshBtn.addEventListener('click', loadIndexData);
+
+  // Auto-load on first tab click
+  var idxTab = document.querySelector('[data-target="pageIndex"]');
+  if (idxTab) {
+    idxTab.addEventListener('click', function() {
+      if (!idxLoaded) loadIndexData();
+    });
+  }
+}
+
+// =====================================================
 // WATCHLIST
 // =====================================================
 function saveWL(){ localStorage.setItem('tw_watchlist',JSON.stringify(watchlist)); }
@@ -2344,6 +2790,9 @@ function init() {
 
   // Initialize volume analysis controls
   initVolControls();
+
+  // Initialize index/futures page
+  initIndexPage();
 
   renderWLDrawer();
 }
