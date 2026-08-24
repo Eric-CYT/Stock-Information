@@ -1938,18 +1938,30 @@ function enrichRows(rows) {
   });
 }
 
-// Process TaiwanStockPrice rows → normalize field names
+// Process IX0001 rows — handles:
+//   • Yahoo Finance format  (fields: open/max/min/close already normalised by parseYahooTWII)
+//   • FinMind TaiwanStockMarketIndex (field: price = close, possibly open/max/min)
+//   • FinMind TaiwanStockPrice (field: max / min)
 function normalizeIX(rows) {
-  return rows.map(function(r) {
+  var result = rows.map(function(r) {
+    // "price" field appears in TaiwanStockMarketIndex (close only)
+    var c = +(r.close || r.price || 0);
     return {
       date:   r.date,
-      open:   +(r.open  || 0),
-      high:   +(r.max   || r.high || 0),
-      low:    +(r.min   || r.low  || 0),
-      close:  +(r.close || 0),
+      open:   +(r.open  || r.price || c),
+      high:   +(r.max   || r.high  || r.price || c),
+      low:    +(r.min   || r.low   || r.price || c),
+      close:  c,
       spread: +(r.spread || 0)
     };
   });
+  // If spread wasn't provided (price-only source), calculate from consecutive closes
+  for (var i = 1; i < result.length; i++) {
+    if (result[i].spread === 0 && result[i-1].close > 0) {
+      result[i].spread = +(result[i].close - result[i-1].close).toFixed(2);
+    }
+  }
+  return result;
 }
 
 // Process TaiwanFuturesDaily rows → pick front-month per date
@@ -2094,28 +2106,87 @@ function updateIdxSignals(enriched, prefix) {
   if (dateEl) dateEl.textContent = latest.date;
 }
 
+// ── IX0001 multi-source fetch ─────────────────────────────
+// Try order: 1) Yahoo Finance ^TWII  2) FinMind TaiwanStockMarketIndex
+function parseYahooTWII(d) {
+  var result = d.chart && d.chart.result && d.chart.result[0];
+  if (!result) throw new Error('Yahoo: no result block');
+  var ts  = result.timestamp || [];
+  var q   = (result.indicators && result.indicators.quote && result.indicators.quote[0]) || {};
+  var prevClose = null;
+  var rows = ts.map(function(t, i) {
+    // +28800000 ms = +8h → convert UTC → Taiwan time for the date string
+    var dateStr = new Date(t * 1000 + 28800000).toISOString().slice(0, 10);
+    var close = (q.close && q.close[i] != null) ? +q.close[i].toFixed(2) : null;
+    var spread = (prevClose != null && close != null) ? +(close - prevClose).toFixed(2) : 0;
+    prevClose = close;
+    return {
+      date:  dateStr,
+      open:  (q.open  && q.open[i]  != null) ? +q.open[i].toFixed(2)  : close,
+      max:   (q.high  && q.high[i]  != null) ? +q.high[i].toFixed(2)  : close,
+      min:   (q.low   && q.low[i]   != null) ? +q.low[i].toFixed(2)   : close,
+      close: close,
+      spread: spread
+    };
+  }).filter(function(r) { return r.close != null; });
+  if (!rows.length) throw new Error('Yahoo: empty data');
+  return rows;
+}
+
+function fetchIX0001(startDate) {
+  // Source 1: Yahoo Finance – ^TWII (最可靠的公開加權指數 OHLC 來源)
+  var yUrl = 'https://query2.finance.yahoo.com/v8/finance/chart/%5ETWII?interval=1d&range=6mo&events=history';
+  return fetchJSON(yUrl, 14000)
+    .then(function(d) {
+      var rows = parseYahooTWII(d);
+      // Filter to requested start date
+      return rows.filter(function(r) { return r.date >= startDate; });
+    })
+    .catch(function(e1) {
+      // Source 2: FinMind TaiwanStockMarketIndex (備援)
+      return fetchJSON(FM + '?dataset=TaiwanStockMarketIndex&start_date=' + startDate, 14000)
+        .then(function(d) {
+          var rows = d.data || [];
+          // FinMind 可能回傳多種指數，找加權相關的
+          var weighted = rows.filter(function(r) {
+            var id = String(r.stock_id || '');
+            return id.indexOf('加權') !== -1 || id === 'Y9999' || id === 'TAIEX';
+          });
+          var target = weighted.length ? weighted : rows;
+          if (!target.length) throw new Error('FinMind TaiwanStockMarketIndex: no data');
+          return target;
+        });
+    });
+}
+
 function loadIndexData() {
   var statusEl   = document.getElementById('idxStatus');
   var refreshBtn = document.getElementById('idxRefreshBtn');
-  if (statusEl)   statusEl.textContent = '⟳ 載入 IX0001 / TXF 資料中...';
+  if (statusEl)   statusEl.textContent = '⟳ 載入加權指數 / 台指期中...';
   if (refreshBtn) { refreshBtn.textContent = '⟳ 載入中…'; refreshBtn.disabled = true; }
 
-  var startDate = daysAgo(90); // need 90 days to have enough for MA calculations
+  var startDate = daysAgo(90); // 90 天含足夠 MA11 計算基底
+
+  // Reset table to loading state
+  var ixTb = document.getElementById('ixTable');
+  if (ixTb) ixTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">⟳ 載入中...</td></tr>';
+  var txTb = document.getElementById('txTable');
+  if (txTb) txTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">⟳ 載入中...</td></tr>';
 
   Promise.allSettled([
-    // IX0001: Taiwan Weighted Stock Index
-    fetchJSON(FM + '?dataset=TaiwanStockPrice&data_id=IX0001&start_date=' + startDate, 16000),
-    // TXF: Taiwan Stock Index Futures (TX series, all contract months)
+    // IX0001: 加權指數 (Yahoo Finance ^TWII → FinMind 備援)
+    fetchIX0001(startDate),
+    // TXF: 台指期近月 (FinMind TaiwanFuturesDaily, data_id=TX)
     fetchJSON(FM + '?dataset=TaiwanFuturesDaily&data_id=TX&start_date=' + startDate, 16000)
   ]).then(function(results) {
     if (refreshBtn) { refreshBtn.textContent = '⟳ 重新整理'; refreshBtn.disabled = false; }
 
-    var ixRaw = results[0].status === 'fulfilled' ? (results[0].value.data || []) : [];
+    var ixRaw = results[0].status === 'fulfilled' ? results[0].value : [];
     var txRaw = results[1].status === 'fulfilled' ? (results[1].value.data || []) : [];
 
     var anyOk = false;
 
-    // ── IX0001 ──
+    // ── IX0001 加權指數 ──
     if (ixRaw.length) {
       var ixNorm = normalizeIX(ixRaw).filter(function(r) { return r.close > 0; });
       ixNorm.sort(function(a, b) { return a.date.localeCompare(b.date); });
@@ -2124,11 +2195,11 @@ function loadIndexData() {
       updateIdxSignals(ixEnriched, 'ix');
       anyOk = true;
     } else {
-      var ixTb = document.getElementById('ixTable');
-      if (ixTb) ixTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">IX0001 資料暫無法取得（FinMind 限速或代號有誤）</td></tr>';
+      var ixErr = results[0].reason ? results[0].reason.message : '資料來源無回應';
+      if (ixTb) ixTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">加權指數載入失敗：' + ixErr + '</td></tr>';
     }
 
-    // ── TXF ──
+    // ── TXF 台指期 ──
     if (txRaw.length) {
       var txNorm = normalizeTXF(txRaw).filter(function(r) { return r.close > 0; });
       txNorm.sort(function(a, b) { return a.date.localeCompare(b.date); });
@@ -2137,8 +2208,8 @@ function loadIndexData() {
       updateIdxSignals(txEnriched, 'tx');
       anyOk = true;
     } else {
-      var txTb = document.getElementById('txTable');
-      if (txTb) txTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">TXF 期貨資料暫無法取得</td></tr>';
+      var txErr = results[1].reason ? results[1].reason.message : '資料來源無回應';
+      if (txTb) txTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">台指期載入失敗：' + txErr + '</td></tr>';
     }
 
     idxLoaded = true;
