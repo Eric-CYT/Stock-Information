@@ -588,6 +588,50 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
   .idx-quick-stats{grid-template-columns:repeat(2,1fr);}
 }
 
+/* ===== SECTOR FUND FLOW PAGE ===== */
+.sec-header-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.sec-status{font-size:12px;color:var(--text3);}
+.sec-controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.sec-period-row{display:flex;flex-wrap:wrap;gap:5px;}
+.sec-pbtn{padding:5px 13px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:12px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .15s;}
+.sec-pbtn:hover{border-color:var(--accent);color:var(--accent);}
+.sec-pbtn.active{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.1);}
+.sec-sort-row{display:flex;flex-wrap:wrap;gap:5px;}
+.sec-sbtn{padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:var(--r);color:var(--text3);font-size:11px;cursor:pointer;transition:all .15s;}
+.sec-sbtn:hover{border-color:var(--gold);color:var(--gold);}
+.sec-sbtn.active{border-color:var(--gold);color:var(--gold);background:rgba(245,158,11,.08);}
+
+/* Heatmap cards */
+.sec-heatmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:18px;}
+.sec-hcard{border-radius:8px;padding:12px 12px 10px;cursor:default;transition:transform .15s;border:1px solid var(--border);position:relative;overflow:hidden;}
+.sec-hcard:hover{transform:translateY(-2px);}
+.sec-hcard-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;line-height:1.3;min-height:31px;}
+.sec-hcard-pct{font-size:19px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;}
+.sec-hcard-sub{font-size:10px;margin-top:5px;opacity:.85;font-family:'JetBrains Mono',monospace;}
+.sec-hcard-flow{display:inline-flex;align-items:center;gap:2px;font-size:10px;margin-top:3px;padding:1px 6px;border-radius:3px;}
+
+/* Detail table */
+.sec-table{width:100%;border-collapse:collapse;font-size:12px;min-width:640px;}
+.sec-table th{padding:9px 10px;color:var(--text3);font-size:10px;border-bottom:1px solid var(--border);font-weight:500;text-align:right;white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s;}
+.sec-table th:hover{color:var(--accent);}
+.sec-table th:first-child,.sec-table th:nth-child(2){text-align:left;cursor:default;}
+.sec-table th:first-child:hover,.sec-table th:nth-child(2):hover{color:var(--text3);}
+.sec-table td{padding:8px 10px;border-bottom:1px solid rgba(30,45,71,.3);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;white-space:nowrap;}
+.sec-table td:first-child{text-align:left;color:var(--text);font-weight:600;font-family:'Noto Sans TC',sans-serif;}
+.sec-table td:nth-child(2){text-align:left;color:var(--text3);font-size:10px;font-family:'Noto Sans TC',sans-serif;}
+.sec-table tr:hover td{background:rgba(56,189,248,.04);}
+.sec-table tr:last-child td{border-bottom:none;}
+.sec-flow-tag{display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:3px;font-size:11px;}
+.sec-flow-tag.in{background:rgba(34,197,94,.12);color:var(--up);}
+.sec-flow-tag.out{background:rgba(244,63,94,.12);color:var(--down);}
+.sec-flow-tag.flat{background:var(--bg3);color:var(--text3);}
+.sec-progress{font-size:11px;color:var(--text3);margin-top:4px;}
+.sec-note{font-size:10px;color:var(--text3);margin-top:8px;line-height:1.6;}
+@media(max-width:640px){
+  .sec-heatmap{grid-template-columns:repeat(2,1fr);}
+  .sec-controls{flex-direction:column;align-items:stretch;}
+}
+
 /* ===== VOLUME ANALYSIS ===== */
 .vol-controls{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
 .vol-quick-btns{display:flex;flex-wrap:wrap;gap:5px;}
@@ -646,6 +690,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
     <button class="tab-btn" data-target="pageCompare">多股比較</button>
     <button class="tab-btn" data-target="pageETF">ETF 分析</button>
     <button class="tab-btn" data-target="pageIndex">📈 指數期貨</button>
+    <button class="tab-btn" data-target="pageSector">🏭 板塊資金</button>
   </div>
 </nav>
 <div class="app-layout" id="appLayout">
@@ -1068,6 +1113,75 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
     </div>
 
   </div><!-- /pageIndex -->
+
+  <!-- PAGE: 板塊資金流向 -->
+  <div class="tab-page" id="pageSector">
+
+    <div class="sec-header-row">
+      <span class="sec-status" id="secStatus">切換至此分頁自動載入資料（約 50 檔代表股，需要一些時間）</span>
+      <button class="btn-primary" id="secRefreshBtn" style="font-size:13px;padding:7px 16px;">⟳ 重新整理</button>
+    </div>
+
+    <div class="sec-controls">
+      <div class="sec-period-row" id="secPeriodRow">
+        <button class="sec-pbtn" data-n="1">日</button>
+        <button class="sec-pbtn" data-n="3">3日</button>
+        <button class="sec-pbtn active" data-n="5">週</button>
+        <button class="sec-pbtn" data-n="15">3週</button>
+        <button class="sec-pbtn" data-n="20">月</button>
+        <button class="sec-pbtn" data-n="60">季</button>
+      </div>
+      <div class="sec-sort-row" id="secSortRow">
+        <button class="sec-sbtn active" data-sort="flow">依資金流向</button>
+        <button class="sec-sbtn" data-sort="price">依漲跌幅</button>
+        <button class="sec-sbtn" data-sort="inst">依法人買超</button>
+      </div>
+    </div>
+
+    <!-- Heatmap overview -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">板塊強弱熱力圖</div>
+        <span class="source-note" id="secPeriodLabel">近1週</span>
+      </div>
+      <div class="panel-body">
+        <div class="sec-heatmap" id="secHeatmap">
+          <div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:30px;font-size:13px;">請點擊「⟳ 重新整理」載入資料</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail table -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">板塊明細</div>
+        <span class="source-note">FinMind · 代表股抽樣</span>
+      </div>
+      <div class="panel-body" style="padding:0;">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table class="sec-table">
+            <thead>
+              <tr>
+                <th>板塊</th>
+                <th>代表股</th>
+                <th id="secThPrice">漲跌幅 ▾</th>
+                <th id="secThFlow">成交金額變化</th>
+                <th id="secThInst">法人買賣超</th>
+              </tr>
+            </thead>
+            <tbody id="secTable">
+              <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">請點擊「⟳ 重新整理」載入資料</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="sec-note" style="padding:10px 16px;">
+          * 資金流向以「成交金額變化」為主要判斷（近期 vs 前一期同長度區間比較，增加=流入／減少=流出）；「法人買賣超」為外資＋投信＋自營商加總，僅供輔助參考。<br>
+          * 板塊採代表性個股抽樣計算平均值，非涵蓋該板塊全部上市公司，數據僅供參考，不構成投資建議。
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pageSector -->
 
 </main>
 </div><!-- /app-layout -->
@@ -2275,6 +2389,290 @@ function initIndexPage() {
 }
 
 // =====================================================
+// SECTOR FUND FLOW  (板塊資金流向)
+// =====================================================
+var sectorDataCache = {};   // stockId -> { price:[{date,close,tmoney}], inst:[{date,net}] }
+var sectorState = { periodN: 5, sortKey: 'flow' };
+var sectorLoaded  = false;
+var sectorLoading = false;
+
+// Fetch one stock's price + institutional data, normalized
+function fetchSectorStock(stockId, startDate) {
+  return Promise.all([
+    fetchJSON(FM + '?dataset=TaiwanStockPrice&data_id=' + stockId + '&start_date=' + startDate, 14000)
+      .catch(function() { return { data: [] }; }),
+    fetchJSON(FM + '?dataset=TaiwanStockInstitutionalInvestors&data_id=' + stockId + '&start_date=' + startDate, 14000)
+      .catch(function() { return { data: [] }; })
+  ]).then(function(res) {
+    var priceRows = (res[0].data || []).map(function(r) {
+      return { date: r.date, close: +r.close, tmoney: +(r.Trading_money || 0) };
+    }).filter(function(r) { return r.close > 0; });
+    priceRows.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+    var instByDate = {};
+    (res[1].data || []).forEach(function(r) {
+      var d = r.date;
+      if (!instByDate[d]) instByDate[d] = { buy: 0, sell: 0 };
+      instByDate[d].buy  += Math.abs(+(r.buy  || 0));
+      instByDate[d].sell += Math.abs(+(r.sell || 0));
+    });
+    var instRows = Object.keys(instByDate).sort().map(function(d) {
+      return { date: d, net: instByDate[d].buy - instByDate[d].sell };
+    });
+
+    return { price: priceRows, inst: instRows };
+  });
+}
+
+// Chunked loader — fetches all unique representative stocks with limited concurrency
+function loadSectorData() {
+  if (sectorLoading) return;
+  sectorLoading = true;
+
+  var statusEl   = document.getElementById('secStatus');
+  var refreshBtn = document.getElementById('secRefreshBtn');
+  if (refreshBtn) { refreshBtn.textContent = '⟳ 載入中…'; refreshBtn.disabled = true; }
+
+  // Collect unique stock ids across all sectors
+  var allIds = [];
+  Object.keys(SECTOR_MAP).forEach(function(sec) {
+    SECTOR_MAP[sec].forEach(function(id) {
+      if (allIds.indexOf(id) < 0) allIds.push(id);
+    });
+  });
+
+  var startDate = daysAgo(200); // 涵蓋季度(60交易日)雙倍區間比較所需天數
+  var chunkSize = 6;
+  var done  = 0;
+  var total = allIds.length;
+
+  function updateProgress() {
+    if (statusEl) statusEl.textContent = '⟳ 載入中 ' + done + '/' + total + ' 檔代表股...';
+  }
+  updateProgress();
+
+  var idx = 0;
+  function nextChunk() {
+    if (idx >= allIds.length) {
+      sectorLoading = false;
+      sectorLoaded  = true;
+      if (refreshBtn) { refreshBtn.textContent = '⟳ 重新整理'; refreshBtn.disabled = false; }
+      var now = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+      if (statusEl) statusEl.textContent = '✓ 更新完成 ' + now + '（共 ' + total + ' 檔代表股）';
+      renderSectorPage();
+      return;
+    }
+    var chunk = allIds.slice(idx, idx + chunkSize);
+    idx += chunkSize;
+    Promise.all(chunk.map(function(id) {
+      return fetchSectorStock(id, startDate).then(function(res) {
+        sectorDataCache[id] = res;
+        done++;
+        updateProgress();
+      }).catch(function() {
+        done++;
+        updateProgress();
+      });
+    })).then(nextChunk);
+  }
+  nextChunk();
+}
+
+// Compute per-sector aggregated metrics for a given trading-day period
+function computeSectorMetrics(periodN) {
+  var results = [];
+  Object.keys(SECTOR_MAP).forEach(function(sec) {
+    var ids = SECTOR_MAP[sec];
+    var priceChanges = [];
+    var flowChanges  = [];
+    var instNets     = [];
+    var matchedStocks = [];
+
+    ids.forEach(function(id) {
+      var d = sectorDataCache[id];
+      if (!d || !d.price || d.price.length < 2) return;
+      var closes   = d.price.map(function(r) { return r.close;  });
+      var tmoneys  = d.price.map(function(r) { return r.tmoney; });
+      var len = closes.length;
+      var n = Math.min(periodN, len - 1);
+      if (n < 1) return;
+
+      matchedStocks.push(id);
+      priceChanges.push((closes[len - 1] - closes[len - 1 - n]) / closes[len - 1 - n] * 100);
+
+      // 成交金額變化：近N交易日總額 vs 前N交易日總額
+      if (len - 1 - 2 * n >= 0) {
+        var recentSum = 0, prevSum = 0, i;
+        for (i = len - n; i < len; i++) recentSum += tmoneys[i];
+        for (i = len - 2 * n; i < len - n; i++) prevSum += tmoneys[i];
+        if (prevSum > 0) flowChanges.push((recentSum - prevSum) / prevSum * 100);
+      }
+
+      // 三大法人買賣超合計（近N交易日）
+      if (d.inst && d.inst.length) {
+        var instLen = d.inst.length;
+        var m = Math.min(periodN, instLen);
+        var sum = 0;
+        for (var j = instLen - m; j < instLen; j++) sum += d.inst[j].net;
+        instNets.push(sum);
+      }
+    });
+
+    if (!matchedStocks.length) return;
+
+    function avg(arr) { return arr.length ? arr.reduce(function(s, v) { return s + v; }, 0) / arr.length : null; }
+    function sum(arr) { return arr.length ? arr.reduce(function(s, v) { return s + v; }, 0) : null; }
+
+    results.push({
+      sector: sec,
+      stocks: matchedStocks,
+      totalStocks: ids.length,
+      priceChangePct: avg(priceChanges),
+      moneyFlowPct:   avg(flowChanges),
+      instNet:        sum(instNets)
+    });
+  });
+  return results;
+}
+
+function fmtSecPct(v) {
+  if (v == null || isNaN(v)) return '--';
+  return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+}
+function fmtInstNet(v) {
+  if (v == null || isNaN(v)) return '--';
+  var abs = Math.abs(v);
+  var unit = '', scale = 1;
+  if (abs >= 1e8)      { unit = '億'; scale = 1e8; }
+  else if (abs >= 1e4) { unit = '萬'; scale = 1e4; }
+  return (v >= 0 ? '+' : '-') + (abs / scale).toFixed(scale === 1 ? 0 : 1) + unit;
+}
+function secPctBg(pct, alphaBase) {
+  if (pct == null) return 'var(--bg3)';
+  var mag = Math.min(Math.abs(pct), 5) / 5;
+  var alpha = 0.08 + mag * (alphaBase || 0.30);
+  return pct >= 0 ? 'rgba(34,197,94,' + alpha.toFixed(2) + ')' : 'rgba(244,63,94,' + alpha.toFixed(2) + ')';
+}
+function secPctBorder(pct) {
+  if (pct == null) return 'var(--border)';
+  return pct >= 0 ? 'rgba(34,197,94,.4)' : 'rgba(244,63,94,.4)';
+}
+
+function renderSectorHeatmap(data) {
+  var el = document.getElementById('secHeatmap');
+  if (!el) return;
+  if (!data.length) {
+    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:30px;font-size:13px;">無資料</div>';
+    return;
+  }
+  var sorted = data.slice().sort(function(a, b) {
+    var av = a.priceChangePct == null ? -999 : a.priceChangePct;
+    var bv = b.priceChangePct == null ? -999 : b.priceChangePct;
+    return bv - av;
+  });
+  el.innerHTML = sorted.map(function(d) {
+    var bg = secPctBg(d.priceChangePct, 0.32);
+    var bd = secPctBorder(d.priceChangePct);
+    var priceColor = d.priceChangePct == null ? 'var(--text3)' : (d.priceChangePct >= 0 ? 'var(--up)' : 'var(--down)');
+    var flowTag = d.moneyFlowPct == null ? '' :
+      '<span class="sec-hcard-flow" style="background:' + (d.moneyFlowPct >= 0 ? 'rgba(34,197,94,.18)' : 'rgba(244,63,94,.18)') + ';color:' + (d.moneyFlowPct >= 0 ? 'var(--up)' : 'var(--down)') + '">'
+      + (d.moneyFlowPct >= 0 ? '▲流入 ' : '▼流出 ') + Math.abs(d.moneyFlowPct).toFixed(1) + '%</span>';
+    return '<div class="sec-hcard" style="background:' + bg + ';border-color:' + bd + '">'
+      + '<div class="sec-hcard-name">' + d.sector + '</div>'
+      + '<div class="sec-hcard-pct" style="color:' + priceColor + '">' + fmtSecPct(d.priceChangePct) + '</div>'
+      + flowTag
+      + '</div>';
+  }).join('');
+}
+
+function renderSectorTable(data, sortKey) {
+  var tbody = document.getElementById('secTable');
+  if (!tbody) return;
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">無資料</td></tr>';
+    return;
+  }
+  var sorted = data.slice().sort(function(a, b) {
+    var av, bv;
+    if (sortKey === 'price')      { av = a.priceChangePct; bv = b.priceChangePct; }
+    else if (sortKey === 'inst')  { av = a.instNet;         bv = b.instNet;         }
+    else                          { av = a.moneyFlowPct;    bv = b.moneyFlowPct;    }
+    av = av == null ? -Infinity : av;
+    bv = bv == null ? -Infinity : bv;
+    return bv - av;
+  });
+  tbody.innerHTML = sorted.map(function(d) {
+    var priceColor = d.priceChangePct == null ? 'var(--text3)' : (d.priceChangePct >= 0 ? 'var(--up)' : 'var(--down)');
+    var flowCls  = d.moneyFlowPct == null ? 'flat' : (d.moneyFlowPct > 0.5 ? 'in' : d.moneyFlowPct < -0.5 ? 'out' : 'flat');
+    var flowTxt  = d.moneyFlowPct == null ? '--' : (d.moneyFlowPct >= 0 ? '▲ 流入 ' : '▼ 流出 ') + Math.abs(d.moneyFlowPct).toFixed(2) + '%';
+    var instColor = d.instNet == null ? 'var(--text3)' : (d.instNet >= 0 ? 'var(--up)' : 'var(--down)');
+    var stockLabel = d.stocks.map(function(id) { return stockNameCache[id] || id; }).join('、');
+    return '<tr>'
+      + '<td>' + d.sector + '</td>'
+      + '<td title="' + stockLabel + '">' + stockLabel + ' <span style="color:var(--text3)">(' + d.stocks.length + '/' + d.totalStocks + ')</span></td>'
+      + '<td style="color:' + priceColor + ';font-weight:700">' + fmtSecPct(d.priceChangePct) + '</td>'
+      + '<td><span class="sec-flow-tag ' + flowCls + '">' + flowTxt + '</span></td>'
+      + '<td style="color:' + instColor + '">' + fmtInstNet(d.instNet) + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function renderSectorPage() {
+  var data = computeSectorMetrics(sectorState.periodN);
+  renderSectorHeatmap(data);
+  renderSectorTable(data, sectorState.sortKey);
+}
+
+function initSectorPage() {
+  var refreshBtn = document.getElementById('secRefreshBtn');
+  if (refreshBtn) refreshBtn.addEventListener('click', loadSectorData);
+
+  var secTab = document.querySelector('[data-target="pageSector"]');
+  if (secTab) {
+    secTab.addEventListener('click', function() {
+      if (!sectorLoaded && !sectorLoading) loadSectorData();
+    });
+  }
+
+  var periodLabels = { 1: '近1日', 3: '近3日', 5: '近1週', 15: '近3週', 20: '近1月', 60: '近1季' };
+
+  document.querySelectorAll('.sec-pbtn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.sec-pbtn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      sectorState.periodN = +btn.dataset.n;
+      var lbl = document.getElementById('secPeriodLabel');
+      if (lbl) lbl.textContent = periodLabels[sectorState.periodN] || '';
+      if (sectorLoaded) renderSectorPage();
+    });
+  });
+
+  document.querySelectorAll('.sec-sbtn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.sec-sbtn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      sectorState.sortKey = btn.dataset.sort;
+      if (sectorLoaded) renderSectorPage();
+    });
+  });
+
+  // 表頭點擊排序（與排序按鈕同步）
+  var thMap = { secThPrice: 'price', secThFlow: 'flow', secThInst: 'inst' };
+  Object.keys(thMap).forEach(function(thId) {
+    var th = document.getElementById(thId);
+    if (!th) return;
+    th.addEventListener('click', function() {
+      var key = thMap[thId];
+      sectorState.sortKey = key;
+      document.querySelectorAll('.sec-sbtn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.sort === key);
+      });
+      if (sectorLoaded) renderSectorPage();
+    });
+  });
+}
+
+// =====================================================
 // WATCHLIST
 // =====================================================
 function saveWL(){ localStorage.setItem('tw_watchlist',JSON.stringify(watchlist)); }
@@ -2556,6 +2954,40 @@ var ETF_INFO = {
     holdings:[{id:'2330',name:'台積電',w:10.5},{id:'NVDA',name:'NVIDIA',w:9.8},{id:'AMD',name:'AMD',w:8.5},{id:'INTC',name:'Intel',w:7.2},{id:'AMAT',name:'應用材料',w:6.8},{id:'LRCX',name:'科林研電',w:6.5},{id:'KLAC',name:'科磊',w:6.2},{id:'ASML',name:'ASML',w:5.8},{id:'MCHP',name:'Microchip',w:5.5},{id:'QCOM',name:'高通',w:5.2}]},
   '00857': { name:'統一MSCI台灣',         type:'指數型', cat:'MSCI台灣',       fee:'0.45%',
     holdings:[{id:'2330',name:'台積電',w:26.5},{id:'2454',name:'聯發科',w:6.0},{id:'2317',name:'鴻海',w:4.3},{id:'2308',name:'台達電',w:3.0},{id:'2382',name:'廣達',w:2.7},{id:'2303',name:'聯電',w:2.4},{id:'2412',name:'中華電',w:2.2},{id:'1301',name:'台塑',w:2.0},{id:'2881',name:'富邦金',w:1.9},{id:'2882',name:'國泰金',w:1.8}]}
+};
+
+// =====================================================
+// SECTOR MAP — 台股上市板塊代表股（完整版）
+// 依 TWSE 產業分類挑選各板塊代表性個股（2~3檔）進行抽樣，
+// 非涵蓋全部上市公司，僅供板塊資金流向/漲跌趨勢參考。
+// =====================================================
+var SECTOR_MAP = {
+  '半導體業':     ['2330','2303','5347'],
+  'IC封測業':     ['3711','2449','6415'],
+  '電子零組件業': ['2308','3037','6269'],
+  '光電業':       ['3481','2409','6116'],
+  '通信網路業':   ['2412','3045','4904'],
+  '電腦及週邊設備業': ['2382','2357','4938'],
+  '其他電子業':   ['2317','6669','3231'],
+  '資訊服務業':   ['2480','6214','5388'],
+  '半導體設備':   ['3131','8112','2371'],
+  '金融保險業':   ['2881','2882','2891'],
+  '塑膠工業':     ['1301','1303','6505'],
+  '鋼鐵工業':     ['2002','2015','2007'],
+  '化學工業':     ['1304','1308','4763'],
+  '生技醫療業':   ['4128','6446','1795'],
+  '航運業':       ['2603','2609','2615'],
+  '觀光事業':     ['2707','5706','2712'],
+  '建材營造業':   ['2542','2547','5522'],
+  '電機機械':     ['1503','1519','1504'],
+  '食品工業':     ['1216','1229','1210'],
+  '紡織纖維':     ['1402','1440','1476'],
+  '汽車工業':     ['2207','1522','2231'],
+  '油電燃氣業':   ['9908','8926'],
+  '玻璃陶瓷':     ['1802','1809'],
+  '造紙工業':     ['1904','1907'],
+  '橡膠工業':     ['2105','2106'],
+  '電器電纜':     ['1609','1605']
 };
 var etfCur = null;
 var etfCmpList = [];
@@ -2904,6 +3336,9 @@ function init() {
 
   // Initialize index/futures page
   initIndexPage();
+
+  // Initialize sector fund flow page
+  initSectorPage();
 
   renderWLDrawer();
 }
