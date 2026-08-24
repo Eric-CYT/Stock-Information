@@ -2106,54 +2106,40 @@ function updateIdxSignals(enriched, prefix) {
   if (dateEl) dateEl.textContent = latest.date;
 }
 
-// ── IX0001 multi-source fetch ─────────────────────────────
-// Try order: 1) Yahoo Finance ^TWII  2) FinMind TaiwanStockMarketIndex
-function parseYahooTWII(d) {
-  var result = d.chart && d.chart.result && d.chart.result[0];
-  if (!result) throw new Error('Yahoo: no result block');
-  var ts  = result.timestamp || [];
-  var q   = (result.indicators && result.indicators.quote && result.indicators.quote[0]) || {};
-  var prevClose = null;
-  var rows = ts.map(function(t, i) {
-    // +28800000 ms = +8h → convert UTC → Taiwan time for the date string
-    var dateStr = new Date(t * 1000 + 28800000).toISOString().slice(0, 10);
-    var close = (q.close && q.close[i] != null) ? +q.close[i].toFixed(2) : null;
-    var spread = (prevClose != null && close != null) ? +(close - prevClose).toFixed(2) : 0;
-    prevClose = close;
-    return {
-      date:  dateStr,
-      open:  (q.open  && q.open[i]  != null) ? +q.open[i].toFixed(2)  : close,
-      max:   (q.high  && q.high[i]  != null) ? +q.high[i].toFixed(2)  : close,
-      min:   (q.low   && q.low[i]   != null) ? +q.low[i].toFixed(2)   : close,
-      close: close,
-      spread: spread
-    };
-  }).filter(function(r) { return r.close != null; });
-  if (!rows.length) throw new Error('Yahoo: empty data');
-  return rows;
+// ── IX0001（加權指數 / TAIEX）多代碼嘗試 ─────────────────────────
+// 說明：瀏覽器端直接呼叫 Yahoo Finance 會被 CORS 政策擋下（Failed to fetch），
+// 因此改為完全透過 FinMind（已確認可用，如 TXF 期貨資料）依序嘗試常見的
+// 加權指數代碼，找到第一組有資料的代碼即採用。
+var IX_CANDIDATES = ['TAIEX', 'Y9999', 'IX0001', 'TWA00', 'T00'];
+
+function tryFinMindCandidate(ids, idx, startDate) {
+  if (idx >= ids.length) return Promise.reject(new Error('查無加權指數資料（已嘗試 ' + ids.join('/') + '）'));
+  var id = ids[idx];
+  return fetchJSON(FM + '?dataset=TaiwanStockPrice&data_id=' + id + '&start_date=' + startDate, 14000)
+    .then(function(d) {
+      var rows = d.data || [];
+      if (rows.length) return { rows: rows, matchedId: id };
+      return tryFinMindCandidate(ids, idx + 1, startDate);
+    })
+    .catch(function() {
+      return tryFinMindCandidate(ids, idx + 1, startDate);
+    });
 }
 
 function fetchIX0001(startDate) {
-  // Source 1: Yahoo Finance – ^TWII (最可靠的公開加權指數 OHLC 來源)
-  var yUrl = 'https://query2.finance.yahoo.com/v8/finance/chart/%5ETWII?interval=1d&range=6mo&events=history';
-  return fetchJSON(yUrl, 14000)
-    .then(function(d) {
-      var rows = parseYahooTWII(d);
-      // Filter to requested start date
-      return rows.filter(function(r) { return r.date >= startDate; });
-    })
-    .catch(function(e1) {
-      // Source 2: FinMind TaiwanStockMarketIndex (備援)
+  return tryFinMindCandidate(IX_CANDIDATES, 0, startDate)
+    .then(function(res) { return res.rows; })
+    .catch(function() {
+      // 備援：FinMind TaiwanStockMarketIndex（若帳號有此資料集權限）
       return fetchJSON(FM + '?dataset=TaiwanStockMarketIndex&start_date=' + startDate, 14000)
         .then(function(d) {
           var rows = d.data || [];
-          // FinMind 可能回傳多種指數，找加權相關的
           var weighted = rows.filter(function(r) {
-            var id = String(r.stock_id || '');
+            var id = String(r.stock_id || r.index_id || '');
             return id.indexOf('加權') !== -1 || id === 'Y9999' || id === 'TAIEX';
           });
           var target = weighted.length ? weighted : rows;
-          if (!target.length) throw new Error('FinMind TaiwanStockMarketIndex: no data');
+          if (!target.length) throw new Error('查無加權指數資料');
           return target;
         });
     });
@@ -2174,7 +2160,7 @@ function loadIndexData() {
   if (txTb) txTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">⟳ 載入中...</td></tr>';
 
   Promise.allSettled([
-    // IX0001: 加權指數 (Yahoo Finance ^TWII → FinMind 備援)
+    // 加權指數（TAIEX）: 依序嘗試 FinMind 多組代碼
     fetchIX0001(startDate),
     // TXF: 台指期近月 (FinMind TaiwanFuturesDaily, data_id=TX)
     fetchJSON(FM + '?dataset=TaiwanFuturesDaily&data_id=TX&start_date=' + startDate, 16000)
@@ -2186,7 +2172,7 @@ function loadIndexData() {
 
     var anyOk = false;
 
-    // ── IX0001 加權指數 ──
+    // ── 加權指數 ──
     if (ixRaw.length) {
       var ixNorm = normalizeIX(ixRaw).filter(function(r) { return r.close > 0; });
       ixNorm.sort(function(a, b) { return a.date.localeCompare(b.date); });
@@ -2196,7 +2182,7 @@ function loadIndexData() {
       anyOk = true;
     } else {
       var ixErr = results[0].reason ? results[0].reason.message : '資料來源無回應';
-      if (ixTb) ixTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">加權指數載入失敗：' + ixErr + '</td></tr>';
+      if (ixTb) ixTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px;line-height:1.8">加權指數載入失敗：' + ixErr + '<br><span style="font-size:11px">請點擊上方「⟳ 重新整理」再試一次</span></td></tr>';
     }
 
     // ── TXF 台指期 ──
