@@ -555,6 +555,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .idx-signals{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
 .idx-signal-item{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;transition:border-color .2s;}
 .idx-signal-item.signal-on{border-color:rgba(34,197,94,.5);}
+.idx-signal-item.signal-warn{border-color:rgba(244,63,94,.5);}
 .idx-signal-item.signal-off{border-color:var(--border);}
 .idx-lamp{width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:2px;transition:all .4s;}
 .idx-lamp.green{background:var(--up);box-shadow:0 0 6px var(--up),0 0 18px rgba(34,197,94,.45);}
@@ -563,6 +564,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .idx-sig-name{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:3px;}
 .idx-sig-status{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;margin-bottom:4px;}
 .idx-sig-status.on{background:rgba(34,197,94,.15);color:var(--up);border:1px solid rgba(34,197,94,.3);}
+.idx-sig-status.warn{background:rgba(244,63,94,.15);color:var(--down);border:1px solid rgba(244,63,94,.3);}
 .idx-sig-status.off{background:var(--bg2);color:var(--text3);border:1px solid var(--border);}
 .idx-sig-val{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
 .idx-quick-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
@@ -581,6 +583,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .idx-sig-wrap{display:inline-flex;align-items:center;gap:3px;font-size:12px;}
 @keyframes lamp-pulse{0%,100%{opacity:1}50%{opacity:.7}}
 .idx-lamp.green{animation:lamp-pulse 2.2s ease-in-out infinite;}
+.idx-lamp.red{animation:lamp-pulse 2.2s ease-in-out infinite;}
 @media(max-width:640px){
   .idx-quick-stats{grid-template-columns:repeat(2,1fr);}
 }
@@ -934,6 +937,15 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
                 <div class="idx-sig-val" id="ix11MAVal">--</div>
               </div>
             </div>
+            <!-- Signal 3: 11MA下彎 -->
+            <div class="idx-signal-item signal-off" id="ixSigDown11MA">
+              <div class="idx-lamp off"></div>
+              <div style="flex:1">
+                <div class="idx-sig-name">11日均線出現下彎</div>
+                <span class="idx-sig-status off" id="ixSigDown11MAStatus">待載入</span>
+                <div class="idx-sig-val" id="ixDown11MAVal">--</div>
+              </div>
+            </div>
           </div>
           <!-- Quick stats -->
           <div class="idx-quick-stats">
@@ -971,6 +983,15 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
                 <div class="idx-sig-val" id="tx11MAVal">--</div>
               </div>
             </div>
+            <!-- Signal 3: 11MA下彎 -->
+            <div class="idx-signal-item signal-off" id="txSigDown11MA">
+              <div class="idx-lamp off"></div>
+              <div style="flex:1">
+                <div class="idx-sig-name">11日均線出現下彎</div>
+                <span class="idx-sig-status off" id="txSigDown11MAStatus">待載入</span>
+                <div class="idx-sig-val" id="txDown11MAVal">--</div>
+              </div>
+            </div>
           </div>
           <!-- Quick stats -->
           <div class="idx-quick-stats">
@@ -1004,10 +1025,11 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
                 <th style="color:var(--gold)">10MA</th>
                 <th>10MA趨勢</th>
                 <th>收&gt;11MA</th>
+                <th style="color:var(--down)">11MA下彎</th>
               </tr>
             </thead>
             <tbody id="ixTable">
-              <tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">請點擊「⟳ 重新整理」載入資料</td></tr>
+              <tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">請點擊「⟳ 重新整理」載入資料</td></tr>
             </tbody>
           </table>
         </div>
@@ -1034,10 +1056,11 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
                 <th style="color:var(--gold)">10MA</th>
                 <th>10MA趨勢</th>
                 <th>收&gt;11MA</th>
+                <th style="color:var(--down)">11MA下彎</th>
               </tr>
             </thead>
             <tbody id="txTable">
-              <tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">請點擊「⟳ 重新整理」載入資料</td></tr>
+              <tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">請點擊「⟳ 重新整理」載入資料</td></tr>
             </tbody>
           </table>
         </div>
@@ -1928,12 +1951,15 @@ function enrichRows(rows) {
     var prevMA10 = i > 0 ? ma10[i - 1] : null;
     var trend = (ma10[i] != null && prevMA10 != null)
       ? (ma10[i] > prevMA10 ? 'up' : ma10[i] < prevMA10 ? 'down' : 'flat') : null;
+    var prevMA11 = i > 0 ? ma11[i - 1] : null;
+    var trend11 = (ma11[i] != null && prevMA11 != null)
+      ? (ma11[i] > prevMA11 ? 'up' : ma11[i] < prevMA11 ? 'down' : 'flat') : null;
     var abv = (closes[i] != null && ma11[i] != null) ? closes[i] > ma11[i] : null;
     return {
       date: r.date, open: r.open, high: r.high, low: r.low,
       close: r.close, spread: r.spread,
       ma3:  ma3[i], ma10: ma10[i], ma11: ma11[i],
-      ma10Trend: trend, closeAbove11: abv
+      ma10Trend: trend, ma11Trend: trend11, closeAbove11: abv
     };
   });
 }
@@ -2006,7 +2032,7 @@ function renderIdxTable(enriched, tbodyId) {
   var tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   if (!enriched.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">無資料</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">無資料</td></tr>';
     return;
   }
   var rows = enriched.slice().reverse(); // newest first
@@ -2024,6 +2050,13 @@ function renderIdxTable(enriched, tbodyId) {
       : r.closeAbove11 === false
       ? '<span class="idx-sig-wrap" style="color:var(--down)">✗ 下方</span>'
       : '<span style="color:var(--text3)">--</span>';
+    var down11Cell = r.ma11Trend === 'down'
+      ? '<span class="idx-sig-wrap" style="color:var(--down)">⬇ 下彎</span>'
+      : r.ma11Trend === 'up'
+      ? '<span style="color:var(--text3)">—</span>'
+      : r.ma11Trend === 'flat'
+      ? '<span style="color:var(--text3)">—</span>'
+      : '<span style="color:var(--text3)">--</span>';
     var trClass = i === 0 ? ' class="idx-latest"' : '';
     return '<tr' + trClass + '>'
       + '<td>' + r.date.slice(5) + '</td>'
@@ -2037,6 +2070,7 @@ function renderIdxTable(enriched, tbodyId) {
       + '<td style="color:var(--gold)">' + fmtIdx(r.ma10) + '</td>'
       + '<td style="text-align:center">' + trendCell + '</td>'
       + '<td style="text-align:center">' + abvCell + '</td>'
+      + '<td style="text-align:center">' + down11Cell + '</td>'
       + '</tr>';
   }).join('');
 }
@@ -2084,6 +2118,26 @@ function updateIdxSignals(enriched, prefix) {
     var c  = latest.close != null ? fmtIdx(latest.close) : '--';
     var m11 = latest.ma11 != null ? fmtIdx(latest.ma11) : '--';
     val11El.textContent = '收盤: ' + c + '  11MA: ' + m11;
+  }
+
+  // ── Signal 3: 11日均線出現下彎 ──
+  var is11MADown = latest.ma11Trend === 'down';
+  var sigD11El  = document.getElementById(prefix + 'SigDown11MA');
+  var statD11El = document.getElementById(prefix + 'SigDown11MAStatus');
+  var valD11El  = document.getElementById(prefix + 'Down11MAVal');
+  if (sigD11El) {
+    sigD11El.className = 'idx-signal-item ' + (is11MADown ? 'signal-warn' : 'signal-off');
+    var lampD11 = sigD11El.querySelector('.idx-lamp');
+    if (lampD11) lampD11.className = 'idx-lamp ' + (is11MADown ? 'red' : 'off');
+  }
+  if (statD11El) {
+    statD11El.textContent = is11MADown ? '🔴 已下彎' : '⚫ 尚未下彎';
+    statD11El.className = 'idx-sig-status ' + (is11MADown ? 'warn' : 'off');
+  }
+  if (valD11El) {
+    var t11 = latest.ma11 != null ? fmtIdx(latest.ma11) : '--';
+    var p11 = (prev && prev.ma11 != null) ? fmtIdx(prev.ma11) : '--';
+    valD11El.textContent = '今11MA: ' + t11 + '  前日: ' + p11;
   }
 
   // ── Quick stats ──
@@ -2155,9 +2209,9 @@ function loadIndexData() {
 
   // Reset table to loading state
   var ixTb = document.getElementById('ixTable');
-  if (ixTb) ixTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">⟳ 載入中...</td></tr>';
+  if (ixTb) ixTb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">⟳ 載入中...</td></tr>';
   var txTb = document.getElementById('txTable');
-  if (txTb) txTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">⟳ 載入中...</td></tr>';
+  if (txTb) txTb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">⟳ 載入中...</td></tr>';
 
   Promise.allSettled([
     // 加權指數（TAIEX）: 依序嘗試 FinMind 多組代碼
@@ -2182,7 +2236,7 @@ function loadIndexData() {
       anyOk = true;
     } else {
       var ixErr = results[0].reason ? results[0].reason.message : '資料來源無回應';
-      if (ixTb) ixTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px;line-height:1.8">加權指數載入失敗：' + ixErr + '<br><span style="font-size:11px">請點擊上方「⟳ 重新整理」再試一次</span></td></tr>';
+      if (ixTb) ixTb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px;line-height:1.8">加權指數載入失敗：' + ixErr + '<br><span style="font-size:11px">請點擊上方「⟳ 重新整理」再試一次</span></td></tr>';
     }
 
     // ── TXF 台指期 ──
@@ -2195,7 +2249,7 @@ function loadIndexData() {
       anyOk = true;
     } else {
       var txErr = results[1].reason ? results[1].reason.message : '資料來源無回應';
-      if (txTb) txTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">台指期載入失敗：' + txErr + '</td></tr>';
+      if (txTb) txTb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">台指期載入失敗：' + txErr + '</td></tr>';
     }
 
     idxLoaded = true;
