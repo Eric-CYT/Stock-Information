@@ -630,11 +630,11 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .sec-flow-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;font-size:11px;color:var(--text2);}
 .sec-flow-legend span{display:inline-flex;align-items:center;gap:5px;}
 .sec-flow-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0;}
-.sec-flow-legend span:nth-child(1) i{background:#f1f5f9;border:1px solid var(--border2);}
-.sec-flow-legend span:nth-child(2) i{background:#64748b;}
-.sec-flow-legend span:nth-child(3) i{background:#22c55e;}
-.sec-flow-legend span:nth-child(4) i{background:#38bdf8;}
-.sec-flow-legend span:nth-child(5) i{background:#f59e0b;}
+.sec-flow-legend span:nth-child(1) i{background:rgba(37,99,235,.6);border:1px solid #2563eb;}
+.sec-flow-legend span:nth-child(2) i{background:rgba(8,145,178,.6);border:1px solid #0891b2;}
+.sec-flow-legend span:nth-child(3) i{background:rgba(22,163,74,.6);border:1px solid #16a34a;}
+.sec-flow-legend span:nth-child(4) i{background:rgba(202,138,4,.6);border:1px solid #ca8a04;}
+.sec-flow-legend span:nth-child(5) i{background:rgba(245,158,11,.6);border:1px solid #f59e0b;}
 .sec-flow-legend span.dash i{width:14px;height:0;border-top:2px dashed var(--text2);background:none;border-radius:0;}
 @media(max-width:640px){
   .sec-heatmap{grid-template-columns:repeat(2,1fr);}
@@ -1127,7 +1127,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
   <div class="tab-page" id="pageSector">
 
     <div class="sec-header-row">
-      <span class="sec-status" id="secStatus">切換至此分頁自動載入資料（約 50 檔代表股，需要一些時間）</span>
+      <span class="sec-status" id="secStatus">切換至此分頁自動載入資料（約 96 檔代表股，需要一些時間）</span>
       <button class="btn-primary" id="secRefreshBtn" style="font-size:13px;padding:7px 16px;">⟳ 重新整理</button>
     </div>
 
@@ -2715,16 +2715,18 @@ function renderSecFlowChart() {
   }
 
   var labels = data.map(function(d) { return d.sector; });
-  var dayColors = ['#f1f5f9', '#64748b', '#22c55e', '#38bdf8', '#f59e0b'];
+  // 方案B：冷暖漸層（5天前=冷藍 → 當日=暖金），背景透明度 60%，邊框保留原色以利辨識邊界
+  var dayColorsSolid = ['#2563eb', '#0891b2', '#16a34a', '#ca8a04', '#f59e0b'];
+  var dayColorsFill  = ['rgba(37,99,235,.6)', 'rgba(8,145,178,.6)', 'rgba(22,163,74,.6)', 'rgba(202,138,4,.6)', 'rgba(245,158,11,.6)'];
   var dayLabels = ['5天前', '4天前', '3天前', '2天前', '當日'];
 
   var flowDatasets = [0, 1, 2, 3, 4].map(function(dayIdx) {
     return {
       label: dayLabels[dayIdx],
       data: data.map(function(d) { return +d.days[dayIdx].toFixed(2); }),
-      backgroundColor: dayColors[dayIdx],
-      borderColor: dayIdx === 0 ? 'rgba(148,163,184,.4)' : dayColors[dayIdx],
-      borderWidth: dayIdx === 0 ? 1 : 0,
+      backgroundColor: dayColorsFill[dayIdx],
+      borderColor: dayColorsSolid[dayIdx],
+      borderWidth: 1,
       stack: 'flow',
       grouped: false,
       barPercentage: 0.7,
@@ -3127,32 +3129,32 @@ var ETF_INFO = {
 // 非涵蓋全部上市公司，僅供板塊資金流向/漲跌趨勢參考。
 // =====================================================
 var SECTOR_MAP = {
-  '半導體業':     ['2330','2303','5347'],
-  'IC封測業':     ['3711','2449','6415'],
-  '電子零組件業': ['2308','3037','6269'],
-  '光電業':       ['3481','2409','6116'],
-  '通信網路業':   ['2412','3045','4904'],
-  '電腦及週邊設備業': ['2382','2357','4938'],
-  '其他電子業':   ['2317','6669','3231'],
+  '半導體業':     ['2330','2303','5347','2454','3034'],
+  'IC封測業':     ['3711','2449','6415','6239'],
+  '電子零組件業': ['2308','3037','6269','2327','2492'],
+  '光電業':       ['3481','2409','6116','3009'],
+  '通信網路業':   ['2412','3045','4904','2345'],
+  '電腦及週邊設備業': ['2382','2357','4938','2377'],
+  '其他電子業':   ['2317','6669','3231','2354'],
   '資訊服務業':   ['2480','6214','5388'],
-  '半導體設備':   ['3131','8112','2371'],
-  '金融保險業':   ['2881','2882','2891'],
-  '塑膠工業':     ['1301','1303','6505'],
-  '鋼鐵工業':     ['2002','2015','2007'],
-  '化學工業':     ['1304','1308','4763'],
-  '生技醫療業':   ['4128','6446','1795'],
-  '航運業':       ['2603','2609','2615'],
+  '半導體設備':   ['3131','8112','3583'],
+  '金融保險業':   ['2881','2882','2891','2886','2884'],
+  '塑膠工業':     ['1301','1303','6505','1326'],
+  '鋼鐵工業':     ['2002','2015','2007','2027'],
+  '化學工業':     ['1304','1308','4763','1717'],
+  '生技醫療業':   ['4128','6446','1795','1720'],
+  '航運業':       ['2603','2609','2615','2606'],
   '觀光事業':     ['2707','5706','2712'],
-  '建材營造業':   ['2542','2547','5522'],
-  '電機機械':     ['1503','1519','1504'],
-  '食品工業':     ['1216','1229','1210'],
-  '紡織纖維':     ['1402','1440','1476'],
-  '汽車工業':     ['2207','1522','2231'],
+  '建材營造業':   ['2542','2547','5522','2504'],
+  '電機機械':     ['1503','1519','1504','1513'],
+  '食品工業':     ['1216','1229','1210','1201'],
+  '紡織纖維':     ['1402','1440','1476','1434'],
+  '汽車工業':     ['2207','1522','2231','2204'],
   '油電燃氣業':   ['9908','8926'],
   '玻璃陶瓷':     ['1802','1809'],
   '造紙工業':     ['1904','1907'],
-  '橡膠工業':     ['2105','2106'],
-  '電器電纜':     ['1609','1605']
+  '橡膠工業':     ['2105','2106','2103'],
+  '電器電纜':     ['1609','1605','1602']
 };
 var etfCur = null;
 var etfCmpList = [];
