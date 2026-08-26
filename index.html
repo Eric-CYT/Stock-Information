@@ -627,6 +627,15 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
 .sec-flow-tag.flat{background:var(--bg3);color:var(--text3);}
 .sec-progress{font-size:11px;color:var(--text3);margin-top:4px;}
 .sec-note{font-size:10px;color:var(--text3);margin-top:8px;line-height:1.6;}
+.sec-flow-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;font-size:11px;color:var(--text2);}
+.sec-flow-legend span{display:inline-flex;align-items:center;gap:5px;}
+.sec-flow-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0;}
+.sec-flow-legend span:nth-child(1) i{background:#f1f5f9;border:1px solid var(--border2);}
+.sec-flow-legend span:nth-child(2) i{background:#64748b;}
+.sec-flow-legend span:nth-child(3) i{background:#22c55e;}
+.sec-flow-legend span:nth-child(4) i{background:#38bdf8;}
+.sec-flow-legend span:nth-child(5) i{background:#f59e0b;}
+.sec-flow-legend span.dash i{width:14px;height:0;border-top:2px dashed var(--text2);background:none;border-radius:0;}
 @media(max-width:640px){
   .sec-heatmap{grid-template-columns:repeat(2,1fr);}
   .sec-controls{flex-direction:column;align-items:stretch;}
@@ -1135,6 +1144,25 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
         <button class="sec-sbtn active" data-sort="flow">依資金流向</button>
         <button class="sec-sbtn" data-sort="price">依漲跌幅</button>
         <button class="sec-sbtn" data-sort="inst">依法人買超</button>
+      </div>
+    </div>
+
+    <!-- 5-Day Fund Flow Stacked Bar (fixed 5-day breakdown, independent of period selector) -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">板塊 5 日資金流向（逐日堆疊）</div>
+        <span class="source-note">虛線＝同期漲跌幅</span>
+      </div>
+      <div class="panel-body">
+        <div class="sec-flow-legend" id="secFlowLegend">
+          <span><i></i>5天前</span>
+          <span><i></i>4天前</span>
+          <span><i></i>3天前</span>
+          <span><i></i>2天前</span>
+          <span><i></i>當日</span>
+          <span class="dash"><i></i>漲跌幅（虛線輔助）</span>
+        </div>
+        <div class="chart-wrap" id="secFlowChartWrap" style="height:900px;"><canvas id="chartSecFlow"></canvas></div>
       </div>
     </div>
 
@@ -2617,10 +2645,147 @@ function renderSectorTable(data, sortKey) {
   }).join('');
 }
 
+// ── 板塊 5 日資金流向逐日堆疊圖（固定 5 交易日，不受期間選擇器影響）──
+function compute5DayFlowBreakdown() {
+  var BASE_N = 20; // 用來當作「正常水位」的基準天數
+  var results = [];
+
+  Object.keys(SECTOR_MAP).forEach(function(sec) {
+    var ids = SECTOR_MAP[sec];
+    var dayPcts   = [[], [], [], [], []]; // 5天前 → 當日，各股票值收集於此
+    var priceChgs = [];
+    var matched = 0;
+
+    ids.forEach(function(id) {
+      var d = sectorDataCache[id];
+      if (!d || !d.price) return;
+      var rows = d.price;
+      var len  = rows.length;
+      if (len < 5 + BASE_N + 1) return; // 資料不足，跳過此股票
+
+      var tmoneys = rows.map(function(r) { return r.tmoney; });
+      var closes  = rows.map(function(r) { return r.close;  });
+
+      // 基準值：5日窗口之前 20 個交易日的平均成交金額
+      var baseSum = 0, i;
+      for (i = len - 5 - BASE_N; i < len - 5; i++) baseSum += tmoneys[i];
+      var base = baseSum / BASE_N;
+      if (base <= 0) return;
+
+      matched++;
+      for (i = 0; i < 5; i++) {
+        var v = tmoneys[len - 5 + i];
+        dayPcts[i].push((v - base) / base * 100);
+      }
+
+      // 同期（5交易日）漲跌幅
+      priceChgs.push((closes[len - 1] - closes[len - 6]) / closes[len - 6] * 100);
+    });
+
+    if (!matched) return;
+
+    function avg(arr) { return arr.length ? arr.reduce(function(s, v) { return s + v; }, 0) / arr.length : 0; }
+
+    var dayAvgs = dayPcts.map(avg);
+    var totalFlow = dayAvgs.reduce(function(s, v) { return s + v; }, 0);
+
+    results.push({
+      sector: sec,
+      matched: matched,
+      total: ids.length,
+      days: dayAvgs,          // [5天前, 4天前, 3天前, 2天前, 當日]
+      totalFlow: totalFlow,
+      priceChangePct: priceChgs.length ? avg(priceChgs) : null
+    });
+  });
+
+  // 依資金流向強弱排序（由強轉弱）
+  results.sort(function(a, b) { return b.totalFlow - a.totalFlow; });
+  return results;
+}
+
+function renderSecFlowChart() {
+  var data = compute5DayFlowBreakdown();
+  var wrap = document.getElementById('secFlowChartWrap');
+  if (wrap) wrap.style.height = Math.max(320, data.length * 30 + 80) + 'px';
+
+  if (!data.length) {
+    if (charts['chartSecFlow']) { charts['chartSecFlow'].destroy(); delete charts['chartSecFlow']; }
+    return;
+  }
+
+  var labels = data.map(function(d) { return d.sector; });
+  var dayColors = ['#f1f5f9', '#64748b', '#22c55e', '#38bdf8', '#f59e0b'];
+  var dayLabels = ['5天前', '4天前', '3天前', '2天前', '當日'];
+
+  var flowDatasets = [0, 1, 2, 3, 4].map(function(dayIdx) {
+    return {
+      label: dayLabels[dayIdx],
+      data: data.map(function(d) { return +d.days[dayIdx].toFixed(2); }),
+      backgroundColor: dayColors[dayIdx],
+      borderColor: dayIdx === 0 ? 'rgba(148,163,184,.4)' : dayColors[dayIdx],
+      borderWidth: dayIdx === 0 ? 1 : 0,
+      stack: 'flow',
+      grouped: false,
+      barPercentage: 0.7,
+      categoryPercentage: 0.8
+    };
+  });
+
+  var priceDataset = {
+    label: '漲跌幅（輔助）',
+    data: data.map(function(d) { return d.priceChangePct == null ? null : +d.priceChangePct.toFixed(2); }),
+    type: 'bar',
+    backgroundColor: 'rgba(0,0,0,0)',
+    borderColor: data.map(function(d) {
+      if (d.priceChangePct == null) return 'rgba(148,163,184,.4)';
+      return d.priceChangePct >= 0 ? '#22c55e' : '#f43f5e';
+    }),
+    borderWidth: 2,
+    borderDash: [4, 3],
+    stack: 'price',
+    grouped: false,
+    barThickness: 7,
+    categoryPercentage: 0.8
+  };
+
+  mkChart('chartSecFlow', {
+    type: 'bar',
+    data: { labels: labels, datasets: flowDatasets.concat([priceDataset]) },
+    options: Object.assign({}, CD, {
+      indexAxis: 'y',
+      plugins: Object.assign({}, CD.plugins, {
+        legend: { display: false },
+        tooltip: Object.assign({}, CD.plugins.tooltip, {
+          callbacks: {
+            label: function(ctx) {
+              var v = ctx.parsed.x;
+              if (v == null || isNaN(v)) return null;
+              return ctx.dataset.label + ': ' + (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+            }
+          }
+        })
+      }),
+      scales: {
+        x: Object.assign({}, CD.scales.x, {
+          ticks: Object.assign({}, CD.scales.x.ticks, {
+            callback: function(v) { return (v >= 0 ? '+' : '') + v + '%'; }
+          }),
+          title: { display: true, text: '5日累積資金流向 (%)　虛線＝同期漲跌幅', color: '#4a5f7a', font: { size: 11 } }
+        }),
+        y: Object.assign({}, CD.scales.y, {
+          ticks: Object.assign({}, CD.scales.y.ticks, { font: { size: 11 } })
+        })
+      }
+    })
+  });
+}
+
 function renderSectorPage() {
   var data = computeSectorMetrics(sectorState.periodN);
   renderSectorHeatmap(data);
   renderSectorTable(data, sectorState.sortKey);
+  renderSecFlowChart();
 }
 
 function initSectorPage() {
