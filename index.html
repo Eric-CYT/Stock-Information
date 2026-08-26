@@ -254,6 +254,18 @@ header{background:var(--bg2);border-bottom:var(--card-border-w) var(--card-borde
 .btn-primary{padding:8px 16px;background:var(--accent);color:#0a0f1e;border:none;border-radius:var(--r);font-weight:700;font-size:13px;cursor:pointer;transition:opacity .15s;}
 .btn-primary:hover{opacity:.85;} .btn-primary:disabled{opacity:.4;cursor:not-allowed;}
 .btn-outline{padding:7px 14px;background:transparent;border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:13px;cursor:pointer;transition:all .2s;}
+.api-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;}
+.api-modal-overlay.open{display:flex;}
+.api-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:22px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.api-modal h3{font-size:15px;color:var(--text);margin:0 0 6px;}
+.api-modal p{font-size:12px;color:var(--text3);line-height:1.7;margin:0 0 14px;}
+.api-modal input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;margin-bottom:12px;box-sizing:border-box;}
+.api-modal input:focus{border-color:var(--accent);}
+.api-modal-status{font-size:12px;margin-bottom:14px;padding:8px 10px;border-radius:6px;}
+.api-modal-status.set{background:rgba(34,197,94,.1);color:var(--up);border:1px solid rgba(34,197,94,.25);}
+.api-modal-status.unset{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+.api-modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+.api-modal a{color:var(--accent);}
 .btn-outline:hover{border-color:var(--gold);color:var(--gold);}
 main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:16px;}
 .status{display:none;align-items:center;gap:8px;padding:8px 14px;border-radius:var(--r);font-size:12px;border:1px solid;}
@@ -683,6 +695,7 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
   <div class="logo">台股分析 <small>v7</small></div>
   <div class="header-right">
     <button class="theme-picker-btn" id="themeBtn">🎨</button>
+    <button class="btn-outline" id="apiSettingsBtn" title="FinMind API 設定">⚙️ API</button>
     <button class="btn-outline" id="wlOpenBtn">☆ 自選</button>
   </div>
   <div class="search-row">
@@ -692,6 +705,25 @@ main{max-width:960px;margin:0 auto;padding:16px;display:flex;flex-direction:colu
     <button class="btn-primary" id="searchBtn">搜尋</button>
   </div>
 </header>
+
+<div class="api-modal-overlay" id="apiModalOverlay">
+  <div class="api-modal">
+    <h3>FinMind API 設定</h3>
+    <p>
+      FinMind 免費額度較低（無金鑰約 300 次/小時），本站「板塊資金」等功能需要大量請求，容易觸發限流導致 CORS 錯誤、全站功能失效。<br>
+      填入你的免費 Token 可大幅提升額度。前往
+      <a href="https://finmindtrade.com/analysis/#/data/api" target="_blank" rel="noopener">finmindtrade.com 免費註冊</a>
+      取得 Token 後貼在下方即可。
+    </p>
+    <div class="api-modal-status unset" id="apiTokenStatus">目前尚未設定 Token（使用預設免費額度）</div>
+    <input type="text" id="apiTokenInput" placeholder="貼上你的 FinMind Token" autocomplete="off">
+    <div class="api-modal-btns">
+      <button class="btn-outline" id="apiTokenClearBtn">清除</button>
+      <button class="btn-outline" id="apiModalCloseBtn">關閉</button>
+      <button class="btn-primary" id="apiTokenSaveBtn">儲存</button>
+    </div>
+  </div>
+</div>
 
 <nav class="tab-nav">
   <div class="tab-nav-inner">
@@ -1297,8 +1329,14 @@ function daysAgo(n) {
 function qLabel(s) {
   var p = s.split('-'); return p[0] + 'Q' + Math.ceil(parseInt(p[1])/3);
 }
+// FinMind API Token（可選）— 有 token 額度會大幅提升，避免觸發 CORS/速率限制
+var FM_TOKEN = localStorage.getItem('finmind_token') || '';
 function fetchJSON(url, ms) {
   var timeout = ms || 12000;
+  // 自動為 FinMind API 請求附加 token（若使用者有設定）
+  if (FM_TOKEN && url.indexOf('finmindtrade.com') !== -1 && url.indexOf('token=') === -1) {
+    url += (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(FM_TOKEN);
+  }
   var req = fetch(url, {headers:{Accept:'application/json'}}).then(function(r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
@@ -2453,8 +2491,41 @@ function fetchSectorStock(stockId, startDate) {
 }
 
 // Chunked loader — fetches all unique representative stocks with limited concurrency
-function loadSectorData() {
+var SECTOR_CACHE_KEY = 'tw_sector_cache_v1';
+var SECTOR_CACHE_TTL = 15 * 60 * 1000; // 15 分鐘內重複開啟分頁沿用快取，降低 API 負擔
+
+function loadSectorCacheFromStorage() {
+  try {
+    var raw = localStorage.getItem(SECTOR_CACHE_KEY);
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    if (!parsed || !parsed.ts || !parsed.data) return null;
+    if (Date.now() - parsed.ts > SECTOR_CACHE_TTL) return null;
+    return parsed.data;
+  } catch (e) { return null; }
+}
+function saveSectorCacheToStorage() {
+  try {
+    localStorage.setItem(SECTOR_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: sectorDataCache }));
+  } catch (e) { /* 略過（可能超過 localStorage 容量） */ }
+}
+
+function loadSectorData(forceRefresh) {
   if (sectorLoading) return;
+
+  // 若有效快取存在且非強制重新整理，直接沿用，避免不必要的大量請求
+  if (!forceRefresh) {
+    var cached = loadSectorCacheFromStorage();
+    if (cached) {
+      sectorDataCache = cached;
+      sectorLoaded = true;
+      var statusEl0 = document.getElementById('secStatus');
+      if (statusEl0) statusEl0.textContent = '✓ 已套用近期快取資料（15分鐘內），點「重新整理」可強制更新';
+      renderSectorPage();
+      return;
+    }
+  }
+
   sectorLoading = true;
 
   var statusEl   = document.getElementById('secStatus');
@@ -2470,7 +2541,8 @@ function loadSectorData() {
   });
 
   var startDate = daysAgo(200); // 涵蓋季度(60交易日)雙倍區間比較所需天數
-  var chunkSize = 6;
+  var chunkSize = 4;   // 降低單批併發量，減少觸發 FinMind 速率限制的機會
+  var chunkDelay = 350; // 批次間隔（毫秒），降低瞬間請求爆量
   var done  = 0;
   var total = allIds.length;
 
@@ -2487,6 +2559,7 @@ function loadSectorData() {
       if (refreshBtn) { refreshBtn.textContent = '⟳ 重新整理'; refreshBtn.disabled = false; }
       var now = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
       if (statusEl) statusEl.textContent = '✓ 更新完成 ' + now + '（共 ' + total + ' 檔代表股）';
+      saveSectorCacheToStorage();
       renderSectorPage();
       return;
     }
@@ -2501,7 +2574,9 @@ function loadSectorData() {
         done++;
         updateProgress();
       });
-    })).then(nextChunk);
+    })).then(function() {
+      setTimeout(nextChunk, chunkDelay);
+    });
   }
   nextChunk();
 }
@@ -2792,12 +2867,12 @@ function renderSectorPage() {
 
 function initSectorPage() {
   var refreshBtn = document.getElementById('secRefreshBtn');
-  if (refreshBtn) refreshBtn.addEventListener('click', loadSectorData);
+  if (refreshBtn) refreshBtn.addEventListener('click', function() { loadSectorData(true); });
 
   var secTab = document.querySelector('[data-target="pageSector"]');
   if (secTab) {
     secTab.addEventListener('click', function() {
-      if (!sectorLoaded && !sectorLoading) loadSectorData();
+      if (!sectorLoaded && !sectorLoading) loadSectorData(false);
     });
   }
 
@@ -2840,6 +2915,61 @@ function initSectorPage() {
 }
 
 // =====================================================
+// FINMIND API TOKEN SETTINGS
+// =====================================================
+function refreshApiTokenStatus() {
+  var statusEl = document.getElementById('apiTokenStatus');
+  var inputEl  = document.getElementById('apiTokenInput');
+  if (!statusEl) return;
+  if (FM_TOKEN) {
+    statusEl.textContent = '✓ 已設定 Token（末四碼：' + FM_TOKEN.slice(-4) + '）';
+    statusEl.className = 'api-modal-status set';
+  } else {
+    statusEl.textContent = '目前尚未設定 Token（使用預設免費額度）';
+    statusEl.className = 'api-modal-status unset';
+  }
+  if (inputEl) inputEl.value = FM_TOKEN || '';
+}
+
+function initApiSettings() {
+  var openBtn    = document.getElementById('apiSettingsBtn');
+  var overlay    = document.getElementById('apiModalOverlay');
+  var closeBtn   = document.getElementById('apiModalCloseBtn');
+  var saveBtn    = document.getElementById('apiTokenSaveBtn');
+  var clearBtn   = document.getElementById('apiTokenClearBtn');
+  var inputEl    = document.getElementById('apiTokenInput');
+
+  if (openBtn && overlay) {
+    openBtn.addEventListener('click', function() {
+      refreshApiTokenStatus();
+      overlay.classList.add('open');
+    });
+  }
+  if (closeBtn && overlay) {
+    closeBtn.addEventListener('click', function() { overlay.classList.remove('open'); });
+  }
+  if (overlay) {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  }
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function() {
+      var v = (inputEl.value || '').trim();
+      FM_TOKEN = v;
+      if (v) localStorage.setItem('finmind_token', v);
+      else localStorage.removeItem('finmind_token');
+      refreshApiTokenStatus();
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      FM_TOKEN = '';
+      localStorage.removeItem('finmind_token');
+      refreshApiTokenStatus();
+    });
+  }
+}
 // WATCHLIST
 // =====================================================
 function saveWL(){ localStorage.setItem('tw_watchlist',JSON.stringify(watchlist)); }
@@ -3506,6 +3636,9 @@ function init() {
 
   // Initialize sector fund flow page
   initSectorPage();
+
+  // Initialize FinMind API token settings
+  initApiSettings();
 
   renderWLDrawer();
 }
